@@ -1,0 +1,13 @@
+# Jangan upload file environment
+.env
+
+# Folder node_modules
+node_modules/
+
+# Folder vendor (kalau nanti pakai composer)
+vendor/
+
+# File cache dan config sensitif
+config.php
+*.log
+.DS_Store

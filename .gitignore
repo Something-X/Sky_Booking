@@ -1,13 +1,12 @@
-# Jangan upload file environment
+# Ignore environment and config files
 .env
-
-# Folder node_modules
-node_modules/
-
-# Folder vendor (kalau nanti pakai composer)
-vendor/
-
-# File cache dan config sensitif
 config.php
-*.log
+
+# Ignore IDE & OS junk
+.vscode/
 .DS_Store
+Thumbs.db
+
+# Ignore vendor or node modules if exist
+vendor/
+node_modules/

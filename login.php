@@ -104,6 +104,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                     </div>
 
+                    <div class="flex justify-end mb-4">
+                        <a href="forgot_password.php" class="text-sm text-primary hover:text-secondary font-semibold">
+                            Lupa Password?
+                        </a>
+                    </div>
+
                     <button type="submit" class="w-full mt-6 bg-primary hover:bg-secondary text-white font-bold py-4 rounded-lg transition duration-300">
                         <i class="fas fa-sign-in-alt mr-2"></i>Login
                     </button>

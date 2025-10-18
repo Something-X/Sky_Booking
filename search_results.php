@@ -329,7 +329,7 @@ $jumlah = (int)($_GET['jumlah'] ?? 1);
                                     <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white px-2">
                                         <i class="fas fa-plane text-primary"></i>
                                     </div>
-                                    <div class="text-center text-xs text-gray-500 mt-1">Langsung</div>
+                                    <div class="text-center text-xs text-gray-500 mt-10">Langsung</div>
                                 </div>
                                 
                                 <div class="text-center">

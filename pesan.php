@@ -1,6 +1,9 @@
 <?php
 require_once 'config.php';
 
+// Require login
+requireLogin();
+
 if (!isset($_GET['id']) || !isset($_GET['jumlah'])) {
     redirect('index.php');
 }

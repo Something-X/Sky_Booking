@@ -149,28 +149,37 @@
             let html = '';
             
             bookings.forEach(booking => {
+                // Check if expired
+                const flightDate = new Date(booking.tanggal);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const isExpired = flightDate < today && booking.status === 'pending';
+                
                 const statusClass = {
-                    'pending': 'bg-yellow-100 text-yellow-800',
+                    'pending': isExpired ? 'bg-gray-100 text-gray-800' : 'bg-yellow-100 text-yellow-800',
                     'lunas': 'bg-green-100 text-green-800',
                     'batal': 'bg-red-100 text-red-800'
                 }[booking.status] || 'bg-gray-100 text-gray-800';
                 
                 const statusIcon = {
-                    'pending': 'fa-clock',
+                    'pending': isExpired ? 'fa-ban' : 'fa-clock',
                     'lunas': 'fa-check-circle',
                     'batal': 'fa-times-circle'
                 }[booking.status] || 'fa-question-circle';
                 
+                const statusText = isExpired ? 'KADALUARSA' : booking.status.toUpperCase();
+                
                 html += `
-                    <div class="bg-white rounded-xl shadow-md hover:shadow-xl transition duration-300 p-6 mb-4">
+                    <div class="bg-white rounded-xl shadow-md hover:shadow-xl transition duration-300 p-6 mb-4 ${isExpired ? 'opacity-75' : ''}">
                         <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                             <div class="flex-1">
                                 <div class="flex items-center gap-3 mb-3">
                                     <span class="text-2xl font-bold text-primary">${booking.kode_booking}</span>
                                     <span class="${statusClass} px-3 py-1 rounded-full text-sm font-semibold">
                                         <i class="fas ${statusIcon} mr-1"></i>
-                                        ${booking.status.toUpperCase()}
+                                        ${statusText}
                                     </span>
+                                    ${isExpired ? '<span class="bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold animate-pulse">EXPIRED</span>' : ''}
                                 </div>
                                 
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -200,7 +209,7 @@
                                         </div>
                                         <div class="flex items-center text-gray-600">
                                             <i class="fas fa-calendar w-5 mr-2"></i>
-                                            <span>${booking.tanggal}</span>
+                                            <span class="${isExpired ? 'text-red-600 font-semibold' : ''}">${booking.tanggal}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -212,10 +221,18 @@
                                     <div class="text-2xl font-bold text-accent">${formatRupiah(booking.total_harga)}</div>
                                     <div class="text-sm text-gray-500">${booking.jumlah_penumpang} penumpang</div>
                                 </div>
-                                <button onclick="showDetail(${booking.id})" 
-                                        class="bg-primary hover:bg-secondary text-white font-bold px-6 py-2 rounded-lg transition duration-300">
-                                    <i class="fas fa-eye mr-2"></i>Detail
-                                </button>
+                                <div class="flex gap-2">
+                                    <button onclick="showDetail(${booking.id})" 
+                                            class="bg-primary hover:bg-secondary text-white font-bold px-6 py-2 rounded-lg transition duration-300">
+                                        <i class="fas fa-eye mr-2"></i>Detail
+                                    </button>
+                                    ${isExpired || booking.status === 'batal' ? `
+                                        <button onclick="deleteBooking(${booking.id})" 
+                                                class="bg-red-500 hover:bg-red-600 text-white font-bold px-6 py-2 rounded-lg transition duration-300">
+                                            <i class="fas fa-trash mr-2"></i>Hapus
+                                        </button>
+                                    ` : ''}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -223,6 +240,31 @@
             });
             
             container.innerHTML = html;
+        }
+
+        async function deleteBooking(id) {
+            if (!confirm('Yakin ingin menghapus pemesanan ini? Data akan dihapus permanen.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('api/delete_booking.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: 'id=' + id
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Pemesanan berhasil dihapus');
+                    loadBookings();
+                } else {
+                    alert(data.message || 'Gagal menghapus pemesanan');
+                }
+            } catch (error) {
+                alert('Terjadi kesalahan');
+            }
         }
 
         async function showDetail(id) {

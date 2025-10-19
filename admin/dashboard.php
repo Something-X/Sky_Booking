@@ -67,6 +67,7 @@ if ($result) {
                         <i class="fas fa-user-circle mr-2"></i>
                         <?= $_SESSION['admin_name'] ?? 'Admin' ?>
                     </span>
+                    <a href="flight_tracking.php" class="text-white hover:text-gray-200 transition">Live Tracking</a>
                     <a href="../index.php" class="text-white hover:text-gray-200 transition">
                         <i class="fas fa-home mr-2"></i>Home
                     </a>

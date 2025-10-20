@@ -1,4 +1,4 @@
-<?php 
+<?php
 require_once 'config.php';
 $user = getUserData();
 
@@ -10,6 +10,7 @@ $jumlah = (int)($_GET['jumlah'] ?? 1);
 ?>
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -35,13 +36,98 @@ $jumlah = (int)($_GET['jumlah'] ?? 1);
             overflow: hidden;
             transition: max-height 0.3s ease-out;
         }
+
         .flight-detail.active {
             max-height: 500px;
         }
+
+        /* Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 9999;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 0;
+            max-width: 450px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s ease-out;
+            overflow: hidden;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
     </style>
 </head>
+
 <body class="bg-gray-50">
     <?php include 'includes/navbar.php'; ?>
+    <?php include 'includes/modal.php'; ?>
+
+    <!-- Modern Login Required Modal -->
+    <div id="loginModal" class="modal-overlay">
+        <div class="modal-content">
+            <!-- Header with Icon -->
+            <div class="bg-gradient-to-r from-primary to-secondary p-6 text-white text-center">
+                <div class="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-lock text-3xl"></i>
+                </div>
+                <h3 class="text-2xl font-bold">Login Diperlukan</h3>
+            </div>
+
+            <!-- Body -->
+            <div class="p-6 text-center">
+                <p class="text-gray-600 text-lg mb-2">Anda harus login terlebih dahulu</p>
+                <p class="text-gray-500 text-sm">untuk memesan tiket penerbangan</p>
+            </div>
+
+            <!-- Buttons -->
+            <div class="px-6 pb-6 flex gap-3">
+                <button onclick="closeLoginModal()" 
+                        class="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition duration-300">
+                    Batal
+                </button>
+                <button onclick="redirectToLogin()" 
+                        class="flex-1 px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white font-bold rounded-lg hover:shadow-lg transform hover:scale-105 transition duration-300">
+                    <i class="fas fa-sign-in-alt mr-2"></i>Login Sekarang
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Search Summary -->
     <div class="bg-white shadow-md py-4">
@@ -169,7 +255,42 @@ $jumlah = (int)($_GET['jumlah'] ?? 1);
 
     <script>
         let allFlights = [];
+        let pendingBookingData = null;
         const jumlah = <?= $jumlah ?>;
+
+        // Modal Functions
+        function showLoginModal(flightId, jumlah) {
+            pendingBookingData = { flightId, jumlah };
+            document.getElementById('loginModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeLoginModal() {
+            document.getElementById('loginModal').classList.remove('active');
+            document.body.style.overflow = 'auto';
+            pendingBookingData = null;
+        }
+
+        function redirectToLogin() {
+            if (pendingBookingData) {
+                const { flightId, jumlah } = pendingBookingData;
+                window.location.href = `login.php?redirect=${encodeURIComponent('pesan.php?id=' + flightId + '&jumlah=' + jumlah)}`;
+            }
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('loginModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeLoginModal();
+            }
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeLoginModal();
+            }
+        });
 
         // Load flights on page load
         window.addEventListener('DOMContentLoaded', function() {
@@ -181,16 +302,16 @@ $jumlah = (int)($_GET['jumlah'] ?? 1);
             formData.append('asal', '<?= $asal ?>');
             formData.append('tujuan', '<?= $tujuan ?>');
             formData.append('tanggal', '<?= $tanggal ?>');
-            
+
             try {
                 const response = await fetch('api/search_flights.php', {
                     method: 'POST',
                     body: formData
                 });
-                
+
                 const data = await response.json();
                 document.getElementById('loadingSpinner').classList.add('hidden');
-                
+
                 if (data.success && data.data.length > 0) {
                     allFlights = data.data;
                     populateAirlineFilters(allFlights);
@@ -213,7 +334,7 @@ $jumlah = (int)($_GET['jumlah'] ?? 1);
                     <span class="text-gray-700">${airline}</span>
                 </label>
             `).join('');
-            
+
             document.querySelectorAll('.filter-airline').forEach(el => {
                 el.addEventListener('change', applyFilters);
             });
@@ -222,24 +343,25 @@ $jumlah = (int)($_GET['jumlah'] ?? 1);
         function applyFilters() {
             const selectedAirlines = Array.from(document.querySelectorAll('.filter-airline:checked')).map(el => el.value);
             const priceRange = document.querySelector('.filter-price:checked')?.value;
-            let minPrice = 0, maxPrice = 99999999;
+            let minPrice = 0,
+                maxPrice = 99999999;
             if (priceRange) {
                 [minPrice, maxPrice] = priceRange.split('-').map(Number);
             }
-            
+
             const selectedTimes = Array.from(document.querySelectorAll('.filter-time:checked')).map(el => el.value);
-            
+
             let filtered = allFlights.filter(flight => {
                 if (!selectedAirlines.includes(flight.maskapai)) return false;
-                
+
                 const price = flight.harga * jumlah;
                 if (price < minPrice || price > maxPrice) return false;
-                
+
                 if (selectedTimes.length > 0) {
                     const time = flight.jam_berangkat;
                     const [hours] = time.split(':').map(Number);
                     const timeInMinutes = hours * 60;
-                    
+
                     const matchesTime = selectedTimes.some(range => {
                         const [start, end] = range.split('-').map(t => {
                             const [h, m] = t.split(':').map(Number);
@@ -247,20 +369,20 @@ $jumlah = (int)($_GET['jumlah'] ?? 1);
                         });
                         return timeInMinutes >= start && timeInMinutes < end;
                     });
-                    
+
                     if (!matchesTime) return false;
                 }
-                
+
                 return true;
             });
-            
+
             displayResults(filtered);
         }
 
         function displayResults(flights) {
             const container = document.getElementById('resultsContainer');
             document.getElementById('resultCount').textContent = flights.length;
-            
+
             if (flights.length === 0) {
                 container.innerHTML = `
                     <div class="bg-yellow-50 border-l-4 border-yellow-400 p-6 rounded-lg">
@@ -275,22 +397,22 @@ $jumlah = (int)($_GET['jumlah'] ?? 1);
                 `;
                 return;
             }
-            
+
             let html = '';
             flights.forEach((flight, index) => {
                 const totalHarga = flight.harga * jumlah;
                 html += createFlightCard(flight, totalHarga, index);
             });
-            
+
             container.innerHTML = html;
-            
+
             // Add toggle listeners
             document.querySelectorAll('.toggle-detail').forEach(btn => {
                 btn.addEventListener('click', function() {
                     const detailId = this.dataset.detail;
                     const detail = document.getElementById(detailId);
                     const icon = this.querySelector('.toggle-icon');
-                    
+
                     detail.classList.toggle('active');
                     icon.classList.toggle('fa-chevron-down');
                     icon.classList.toggle('fa-chevron-up');
@@ -329,7 +451,7 @@ $jumlah = (int)($_GET['jumlah'] ?? 1);
                                     <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white px-2">
                                         <i class="fas fa-plane text-primary"></i>
                                     </div>
-                                    <div class="text-center text-xs text-gray-500 mt-10">Langsung</div>
+                                    <div class="text-center text-xs text-gray-500 mt-8">Langsung</div>
                                 </div>
                                 
                                 <div class="text-center">
@@ -465,8 +587,8 @@ $jumlah = (int)($_GET['jumlah'] ?? 1);
         document.getElementById('sortSelect').addEventListener('change', function() {
             const value = this.value;
             const sorted = [...allFlights];
-            
-            switch(value) {
+
+            switch (value) {
                 case 'price-asc':
                     sorted.sort((a, b) => a.harga - b.harga);
                     break;
@@ -480,7 +602,7 @@ $jumlah = (int)($_GET['jumlah'] ?? 1);
                     sorted.sort((a, b) => b.jam_berangkat.localeCompare(a.jam_berangkat));
                     break;
             }
-            
+
             allFlights = sorted;
             applyFilters();
         });
@@ -493,11 +615,10 @@ $jumlah = (int)($_GET['jumlah'] ?? 1);
             <?php if (isLoggedIn()): ?>
                 window.location.href = `pesan.php?id=${flightId}&jumlah=${jumlah}`;
             <?php else: ?>
-                if (confirm('Anda harus login terlebih dahulu untuk memesan tiket. Login sekarang?')) {
-                    window.location.href = `login.php?redirect=${encodeURIComponent('pesan.php?id=' + flightId + '&jumlah=' + jumlah)}`;
-                }
+                showLoginModal(flightId, jumlah);
             <?php endif; ?>
         }
     </script>
 </body>
+
 </html>

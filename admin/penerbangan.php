@@ -4,6 +4,10 @@ require_once '../config.php';
 if (!isAdmin()) {
     redirect('login.php');
 }
+
+// Get pending count for badge
+$pending_result = $conn->query("SELECT COUNT(*) as total FROM pemesanan WHERE status = 'pending'");
+$pending_count = $pending_result ? $pending_result->fetch_assoc()['total'] : 0;
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -20,91 +24,176 @@ if (!isAdmin()) {
                     colors: {
                         primary: '#0066cc',
                         secondary: '#004999',
-                        accent: '#ff6b35'
+                        accent: '#ff6b35',
+                        sidebar: '#1a1d2e'
                     }
                 }
             }
         }
     </script>
+    <style>
+        .sidebar {
+            width: 260px;
+            transition: all 0.3s ease;
+        }
+        .sidebar.collapsed {
+            width: 80px;
+        }
+        .sidebar-item {
+            transition: all 0.2s ease;
+        }
+        .sidebar-item:hover {
+            background: rgba(59, 130, 246, 0.1);
+            transform: translateX(4px);
+        }
+        .sidebar-item.active {
+            background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
+            color: white !important;
+        }
+    </style>
 </head>
-<body class="bg-gray-50">
-    <!-- Navbar -->
-    <nav class="bg-gradient-to-r from-primary to-secondary shadow-lg">
-        <div class="container mx-auto px-4">
-            <div class="flex items-center justify-between h-16">
-                <a href="dashboard.php" class="text-white text-2xl font-bold flex items-center">
-                    <i class="fas fa-plane-departure mr-2"></i>SkyBooking Admin
-                </a>
-                <div class="flex items-center space-x-6">
-                    <a href="dashboard.php" class="text-white hover:text-gray-200 transition">Dashboard</a>
-                    <a href="penerbangan.php" class="text-white hover:text-gray-200 transition border-b-2 border-white">Penerbangan</a>
-                    <a href="pemesanan.php" class="text-white hover:text-gray-200 transition">Pemesanan</a>
-                    <a href="logout.php" class="text-white hover:text-gray-200 transition">Logout</a>
+<body class="bg-gray-50 flex">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar bg-sidebar h-screen sticky top-0 flex flex-col shadow-2xl">
+        <div class="p-6 flex items-center justify-between border-b border-gray-700">
+            <a href="dashboard.php" class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-plane text-white text-lg"></i>
                 </div>
-            </div>
-        </div>
-    </nav>
-
-    <div class="container mx-auto px-4 py-8">
-        <div class="flex justify-between items-center mb-8">
-            <div>
-                <h1 class="text-4xl font-bold text-gray-800">Kelola Penerbangan</h1>
-                <p class="text-gray-600 mt-2">Tambah, edit, atau hapus jadwal penerbangan</p>
-            </div>
-            <button onclick="showAddModal()" class="bg-primary hover:bg-secondary text-white font-bold px-6 py-3 rounded-lg transition duration-300 flex items-center">
-                <i class="fas fa-plus mr-2"></i>Tambah Penerbangan
+                <span id="logo-text" class="text-white text-xl font-bold">SkyBooking</span>
+            </a>
+            <button onclick="toggleSidebar()" class="text-gray-400 hover:text-white">
+                <i class="fas fa-bars"></i>
             </button>
         </div>
 
-        <!-- Filter & Search -->
-        <div class="bg-white rounded-xl shadow-md p-6 mb-6">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <input type="text" id="searchInput" placeholder="Cari maskapai, kode, rute..."
-                       class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
-                <select id="filterStatus" class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
-                    <option value="">Semua Status</option>
-                    <option value="aktif">Aktif</option>
-                    <option value="batal">Batal</option>
-                </select>
-                <button onclick="loadFlights()" class="bg-primary hover:bg-secondary text-white font-bold px-6 py-3 rounded-lg transition duration-300">
-                    <i class="fas fa-search mr-2"></i>Cari
+        <nav class="flex-1 p-4 overflow-y-auto">
+            <div class="mb-6">
+                <p class="text-gray-500 text-xs uppercase mb-3 px-4" id="general-label">General</p>
+                <a href="dashboard.php" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 mb-2">
+                    <i class="fas fa-home w-5"></i>
+                    <span class="sidebar-text">Dashboard</span>
+                </a>
+                <a href="penerbangan.php" class="sidebar-item active flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 mb-2">
+                    <i class="fas fa-plane-departure w-5"></i>
+                    <span class="sidebar-text">Penerbangan</span>
+                </a>
+                <a href="pemesanan.php" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 mb-2">
+                    <i class="fas fa-ticket-alt w-5"></i>
+                    <span class="sidebar-text">Pemesanan</span>
+                    <?php if ($pending_count > 0): ?>
+                    <span class="sidebar-text ml-auto bg-red-500 text-white text-xs px-2 py-1 rounded-full"><?= $pending_count ?></span>
+                    <?php endif; ?>
+                </a>
+                <a href="flight_tracking.php" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 mb-2">
+                    <i class="fas fa-map-marked-alt w-5"></i>
+                    <span class="sidebar-text">Live Tracking</span>
+                </a>
+            </div>
+
+            <div class="mb-6">
+                <p class="text-gray-500 text-xs uppercase mb-3 px-4" id="analytics-label">Analytics</p>
+                <a href="analytics.php" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 mb-2">
+                    <i class="fas fa-chart-line w-5"></i>
+                    <span class="sidebar-text">Analytics</span>
+                </a>
+                <a href="#reports" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 mb-2">
+                    <i class="fas fa-file-alt w-5"></i>
+                    <span class="sidebar-text">Reports</span>
+                </a>
+            </div>
+
+            <div>
+                <p class="text-gray-500 text-xs uppercase mb-3 px-4" id="support-label">Support</p>
+                <a href="#settings" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 mb-2">
+                    <i class="fas fa-cog w-5"></i>
+                    <span class="sidebar-text">Settings</span>
+                </a>
+                <a href="logout.php" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300">
+                    <i class="fas fa-sign-out-alt w-5"></i>
+                    <span class="sidebar-text">Logout</span>
+                </a>
+            </div>
+        </nav>
+
+        <div class="p-4 border-t border-gray-700">
+            <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-4" id="upgrade-card">
+                <i class="fas fa-crown text-yellow-300 text-2xl mb-2"></i>
+                <p class="text-white font-semibold mb-1 sidebar-text">Upgrade Plan</p>
+                <p class="text-blue-100 text-xs mb-3 sidebar-text">Get premium features</p>
+                <button class="sidebar-text w-full bg-white text-blue-600 font-semibold py-2 rounded-lg text-sm hover:bg-blue-50 transition">
+                    Upgrade Now
                 </button>
             </div>
         </div>
+    </aside>
 
-        <!-- Loading -->
-        <div id="loadingSpinner" class="text-center hidden">
-            <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </div>
+    <!-- Main Content -->
+    <main class="flex-1 overflow-x-hidden">
+        <!-- Top Bar -->
+        <header class="bg-white shadow-sm sticky top-0 z-10">
+            <div class="px-8 py-4 flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800">Kelola Penerbangan</h1>
+                    <p class="text-gray-500 text-sm mt-1">Tambah, edit, atau hapus jadwal penerbangan</p>
+                </div>
+                <button onclick="showAddModal()" class="bg-primary hover:bg-secondary text-white font-bold px-6 py-3 rounded-lg transition duration-300 flex items-center">
+                    <i class="fas fa-plus mr-2"></i>Tambah Penerbangan
+                </button>
+            </div>
+        </header>
 
-        <!-- Table -->
-        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead class="bg-gradient-to-r from-primary to-secondary text-white">
-                        <tr>
-                            <th class="px-6 py-4 text-left">Maskapai</th>
-                            <th class="px-6 py-4 text-left">Kode</th>
-                            <th class="px-6 py-4 text-left">Rute</th>
-                            <th class="px-6 py-4 text-left">Tanggal</th>
-                            <th class="px-6 py-4 text-left">Waktu</th>
-                            <th class="px-6 py-4 text-right">Harga</th>
-                            <th class="px-6 py-4 text-center">Kursi</th>
-                            <th class="px-6 py-4 text-center">Status</th>
-                            <th class="px-6 py-4 text-center">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody id="flightTableBody">
-                        <tr>
-                            <td colspan="9" class="px-6 py-8 text-center text-gray-500">
-                                Loading...
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+        <div class="p-8">
+            <!-- Filter & Search -->
+            <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <input type="text" id="searchInput" placeholder="Cari maskapai, kode, rute..."
+                           class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                    <select id="filterStatus" class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                        <option value="">Semua Status</option>
+                        <option value="aktif">Aktif</option>
+                        <option value="batal">Batal</option>
+                    </select>
+                    <button onclick="loadFlights()" class="bg-primary hover:bg-secondary text-white font-bold px-6 py-3 rounded-lg transition duration-300">
+                        <i class="fas fa-search mr-2"></i>Cari
+                    </button>
+                </div>
+            </div>
+
+            <!-- Loading -->
+            <div id="loadingSpinner" class="text-center hidden">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+
+            <!-- Table -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gradient-to-r from-primary to-secondary text-white">
+                            <tr>
+                                <th class="px-6 py-4 text-left">Maskapai</th>
+                                <th class="px-6 py-4 text-left">Kode</th>
+                                <th class="px-6 py-4 text-left">Rute</th>
+                                <th class="px-6 py-4 text-left">Tanggal</th>
+                                <th class="px-6 py-4 text-left">Waktu</th>
+                                <th class="px-6 py-4 text-right">Harga</th>
+                                <th class="px-6 py-4 text-center">Kursi</th>
+                                <th class="px-6 py-4 text-center">Status</th>
+                                <th class="px-6 py-4 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="flightTableBody">
+                            <tr>
+                                <td colspan="9" class="px-6 py-8 text-center text-gray-500">
+                                    Loading...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
-    </div>
+    </main>
 
     <!-- Add/Edit Modal -->
     <div id="flightModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
@@ -187,6 +276,20 @@ if (!isAdmin()) {
     </div>
 
     <script>
+        // Sidebar toggle
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('collapsed');
+            
+            const texts = document.querySelectorAll('.sidebar-text');
+            const labels = document.querySelectorAll('[id$="-label"]');
+            const upgradeCard = document.getElementById('upgrade-card');
+            
+            texts.forEach(el => el.classList.toggle('hidden'));
+            labels.forEach(el => el.classList.toggle('hidden'));
+            if (upgradeCard) upgradeCard.classList.toggle('hidden');
+        }
+
         window.addEventListener('DOMContentLoaded', function() {
             loadFlights();
         });

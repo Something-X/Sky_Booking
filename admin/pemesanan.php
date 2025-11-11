@@ -4,9 +4,14 @@ require_once '../config.php';
 if (!isAdmin()) {
     redirect('login.php');
 }
+
+// Get pending count for badge
+$pending_result = $conn->query("SELECT COUNT(*) as total FROM pemesanan WHERE status = 'pending'");
+$pending_count = $pending_result ? $pending_result->fetch_assoc()['total'] : 0;
 ?>
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -18,88 +23,84 @@ if (!isAdmin()) {
             theme: {
                 extend: {
                     colors: {
-                        primary: '#0066cc',
-                        secondary: '#004999',
-                        accent: '#ff6b35'
+                        primary: '#3b82f6',
+                        secondary: '#1e40af',
+                        accent: '#f59e0b',
+                        sidebar: '#1e293b' // Warna sidebar lebih terang (slate-800)
                     }
                 }
             }
         }
     </script>
 </head>
-<body class="bg-gray-50">
-    <!-- Navbar -->
-    <nav class="bg-gradient-to-r from-primary to-secondary shadow-lg">
-        <div class="container mx-auto px-4">
-            <div class="flex items-center justify-between h-16">
-                <a href="dashboard.php" class="text-white text-2xl font-bold flex items-center">
-                    <i class="fas fa-plane-departure mr-2"></i>SkyBooking Admin
-                </a>
-                <div class="flex items-center space-x-6">
-                    <a href="dashboard.php" class="text-white hover:text-gray-200 transition">Dashboard</a>
-                    <a href="penerbangan.php" class="text-white hover:text-gray-200 transition">Penerbangan</a>
-                    <a href="pemesanan.php" class="text-white hover:text-gray-200 transition border-b-2 border-white">Pemesanan</a>
-                    <a href="logout.php" class="text-white hover:text-gray-200 transition">Logout</a>
+
+<body class="bg-gray-50 flex">
+    <!-- Sidebar -->
+    <?php include 'includes/sidebar.php'; ?>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-x-hidden">
+        <!-- Top Bar -->
+        <header class="bg-white shadow-sm sticky top-0 z-10">
+            <div class="px-8 py-4">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800">Kelola Pemesanan</h1>
+                    <p class="text-gray-500 text-sm mt-1">Lihat dan update status pemesanan tiket</p>
+                </div>
+            </div>
+        </header>
+
+        <div class="p-8">
+            <!-- Filter & Search -->
+            <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <input type="text" id="searchInput" placeholder="Cari kode booking, nama, email..."
+                        class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                    <select id="filterStatus" class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                        <option value="">Semua Status</option>
+                        <option value="pending">Pending</option>
+                        <option value="lunas">Lunas</option>
+                        <option value="batal">Batal</option>
+                    </select>
+                    <button onclick="loadBookings()" class="bg-primary hover:bg-secondary text-white font-bold px-6 py-3 rounded-lg transition duration-300">
+                        <i class="fas fa-search mr-2"></i>Cari
+                    </button>
+                </div>
+            </div>
+
+            <!-- Loading -->
+            <div id="loadingSpinner" class="text-center hidden">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+
+            <!-- Table -->
+            <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gradient-to-r from-primary to-secondary text-white">
+                            <tr>
+                                <th class="px-6 py-4 text-left">Kode Booking</th>
+                                <th class="px-6 py-4 text-left">Pemesan</th>
+                                <th class="px-6 py-4 text-left">Penerbangan</th>
+                                <th class="px-6 py-4 text-left">Rute</th>
+                                <th class="px-6 py-4 text-center">Penumpang</th>
+                                <th class="px-6 py-4 text-right">Total</th>
+                                <th class="px-6 py-4 text-center">Status</th>
+                                <th class="px-6 py-4 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bookingTableBody">
+                            <tr>
+                                <td colspan="8" class="px-6 py-8 text-center text-gray-500">
+                                    Loading...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
-    </nav>
-
-    <div class="container mx-auto px-4 py-8">
-        <div class="mb-8">
-            <h1 class="text-4xl font-bold text-gray-800">Kelola Pemesanan</h1>
-            <p class="text-gray-600 mt-2">Lihat dan update status pemesanan tiket</p>
-        </div>
-
-        <!-- Filter & Search -->
-        <div class="bg-white rounded-xl shadow-md p-6 mb-6">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <input type="text" id="searchInput" placeholder="Cari kode booking, nama, email..."
-                       class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
-                <select id="filterStatus" class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
-                    <option value="">Semua Status</option>
-                    <option value="pending">Pending</option>
-                    <option value="lunas">Lunas</option>
-                    <option value="batal">Batal</option>
-                </select>
-                <button onclick="loadBookings()" class="bg-primary hover:bg-secondary text-white font-bold px-6 py-3 rounded-lg transition duration-300">
-                    <i class="fas fa-search mr-2"></i>Cari
-                </button>
-            </div>
-        </div>
-
-        <!-- Loading -->
-        <div id="loadingSpinner" class="text-center hidden">
-            <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </div>
-
-        <!-- Table -->
-        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead class="bg-gradient-to-r from-primary to-secondary text-white">
-                        <tr>
-                            <th class="px-6 py-4 text-left">Kode Booking</th>
-                            <th class="px-6 py-4 text-left">Pemesan</th>
-                            <th class="px-6 py-4 text-left">Penerbangan</th>
-                            <th class="px-6 py-4 text-left">Rute</th>
-                            <th class="px-6 py-4 text-center">Penumpang</th>
-                            <th class="px-6 py-4 text-right">Total</th>
-                            <th class="px-6 py-4 text-center">Status</th>
-                            <th class="px-6 py-4 text-center">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody id="bookingTableBody">
-                        <tr>
-                            <td colspan="8" class="px-6 py-8 text-center text-gray-500">
-                                Loading...
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
+    </main>
 
     <!-- Update Status Modal -->
     <div id="statusModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
@@ -110,12 +111,12 @@ if (!isAdmin()) {
                 <div class="mb-6">
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Kode Booking</label>
                     <input type="text" id="bookingCode" readonly
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50">
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50">
                 </div>
                 <div class="mb-6">
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Status *</label>
                     <select id="bookingStatus" required
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
                         <option value="pending">Pending</option>
                         <option value="lunas">Lunas</option>
                         <option value="batal">Batal</option>
@@ -141,15 +142,15 @@ if (!isAdmin()) {
         async function loadBookings() {
             const search = document.getElementById('searchInput').value;
             const status = document.getElementById('filterStatus').value;
-            
+
             document.getElementById('loadingSpinner').classList.remove('hidden');
-            
+
             try {
                 const response = await fetch(`api/get_bookings_admin.php?search=${encodeURIComponent(search)}&status=${status}`);
                 const data = await response.json();
-                
+
                 document.getElementById('loadingSpinner').classList.add('hidden');
-                
+
                 if (data.success) {
                     displayBookings(data.data);
                 }
@@ -161,7 +162,7 @@ if (!isAdmin()) {
 
         function displayBookings(bookings) {
             const tbody = document.getElementById('bookingTableBody');
-            
+
             if (bookings.length === 0) {
                 tbody.innerHTML = `
                     <tr>
@@ -172,15 +173,15 @@ if (!isAdmin()) {
                 `;
                 return;
             }
-            
+
             let html = '';
             bookings.forEach(booking => {
                 const statusClass = {
                     'pending': 'bg-yellow-100 text-yellow-800',
                     'lunas': 'bg-green-100 text-green-800',
                     'batal': 'bg-red-100 text-red-800'
-                }[booking.status] || 'bg-gray-100 text-gray-800';
-                
+                } [booking.status] || 'bg-gray-100 text-gray-800';
+
                 html += `
                     <tr class="border-b border-gray-200 hover:bg-gray-50">
                         <td class="px-6 py-4 font-bold text-primary">${booking.kode_booking}</td>
@@ -218,7 +219,7 @@ if (!isAdmin()) {
                     </tr>
                 `;
             });
-            
+
             tbody.innerHTML = html;
         }
 
@@ -235,19 +236,21 @@ if (!isAdmin()) {
 
         document.getElementById('statusForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
+
             const id = document.getElementById('bookingId').value;
             const status = document.getElementById('bookingStatus').value;
-            
+
             try {
                 const response = await fetch('api/update_booking_status.php', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
                     body: `id=${id}&status=${status}`
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (data.success) {
                     alert('Status berhasil diupdate');
                     closeStatusModal();
@@ -269,4 +272,5 @@ if (!isAdmin()) {
         }
     </script>
 </body>
+
 </html>

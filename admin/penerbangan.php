@@ -11,6 +11,7 @@ $pending_count = $pending_result ? $pending_result->fetch_assoc()['total'] : 0;
 ?>
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -22,10 +23,10 @@ $pending_count = $pending_result ? $pending_result->fetch_assoc()['total'] : 0;
             theme: {
                 extend: {
                     colors: {
-                        primary: '#0066cc',
-                        secondary: '#004999',
-                        accent: '#ff6b35',
-                        sidebar: '#1a1d2e'
+                        primary: '#3b82f6',
+                        secondary: '#1e40af',
+                        accent: '#f59e0b',
+                        sidebar: '#1e293b' // Warna sidebar lebih terang (slate-800)
                     }
                 }
             }
@@ -36,25 +37,30 @@ $pending_count = $pending_result ? $pending_result->fetch_assoc()['total'] : 0;
             width: 260px;
             transition: all 0.3s ease;
         }
+
         .sidebar.collapsed {
             width: 80px;
         }
+
         .sidebar-item {
             transition: all 0.2s ease;
         }
+
         .sidebar-item:hover {
             background: rgba(59, 130, 246, 0.1);
             transform: translateX(4px);
         }
+
         .sidebar-item.active {
             background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
             color: white !important;
         }
     </style>
 </head>
+
 <body class="bg-gray-50 flex">
     <!-- Sidebar -->
-   <?php include 'includes/sidebar.php'; ?>
+    <?php include 'includes/sidebar.php'; ?>
 
     <!-- Main Content -->
     <main class="flex-1 overflow-x-hidden">
@@ -76,7 +82,7 @@ $pending_count = $pending_result ? $pending_result->fetch_assoc()['total'] : 0;
             <div class="bg-white rounded-xl shadow-md p-6 mb-6">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <input type="text" id="searchInput" placeholder="Cari maskapai, kode, rute..."
-                           class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                        class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
                     <select id="filterStatus" class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
                         <option value="">Semua Status</option>
                         <option value="aktif">Aktif</option>
@@ -139,52 +145,52 @@ $pending_count = $pending_result ? $pending_result->fetch_assoc()['total'] : 0;
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Maskapai *</label>
                             <input type="text" name="maskapai" required
-                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Kode Penerbangan *</label>
                             <input type="text" name="kode_penerbangan" required
-                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Asal *</label>
                             <input type="text" name="asal" required placeholder="Jakarta (CGK)"
-                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Tujuan *</label>
                             <input type="text" name="tujuan" required placeholder="Surabaya (SUB)"
-                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Tanggal *</label>
                             <input type="date" name="tanggal" required
-                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Jam Berangkat *</label>
                             <input type="time" name="jam_berangkat" required
-                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Jam Tiba *</label>
                             <input type="time" name="jam_tiba" required
-                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Harga *</label>
                             <input type="number" name="harga" required min="0" step="1000"
-                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Kapasitas *</label>
                             <input type="number" name="kapasitas" required min="1" value="100"
-                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Status *</label>
                             <select name="status" required
-                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
                                 <option value="aktif">Aktif</option>
                                 <option value="batal">Batal</option>
                             </select>
@@ -208,11 +214,11 @@ $pending_count = $pending_result ? $pending_result->fetch_assoc()['total'] : 0;
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             sidebar.classList.toggle('collapsed');
-            
+
             const texts = document.querySelectorAll('.sidebar-text');
             const labels = document.querySelectorAll('[id$="-label"]');
             const upgradeCard = document.getElementById('upgrade-card');
-            
+
             texts.forEach(el => el.classList.toggle('hidden'));
             labels.forEach(el => el.classList.toggle('hidden'));
             if (upgradeCard) upgradeCard.classList.toggle('hidden');
@@ -225,15 +231,15 @@ $pending_count = $pending_result ? $pending_result->fetch_assoc()['total'] : 0;
         async function loadFlights() {
             const search = document.getElementById('searchInput').value;
             const status = document.getElementById('filterStatus').value;
-            
+
             document.getElementById('loadingSpinner').classList.remove('hidden');
-            
+
             try {
                 const response = await fetch(`api/get_flights.php?search=${encodeURIComponent(search)}&status=${status}`);
                 const data = await response.json();
-                
+
                 document.getElementById('loadingSpinner').classList.add('hidden');
-                
+
                 if (data.success) {
                     displayFlights(data.data);
                 }
@@ -245,7 +251,7 @@ $pending_count = $pending_result ? $pending_result->fetch_assoc()['total'] : 0;
 
         function displayFlights(flights) {
             const tbody = document.getElementById('flightTableBody');
-            
+
             if (flights.length === 0) {
                 tbody.innerHTML = `
                     <tr>
@@ -256,7 +262,7 @@ $pending_count = $pending_result ? $pending_result->fetch_assoc()['total'] : 0;
                 `;
                 return;
             }
-            
+
             let html = '';
             flights.forEach(flight => {
                 const statusClass = flight.status === 'aktif' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
@@ -293,7 +299,7 @@ $pending_count = $pending_result ? $pending_result->fetch_assoc()['total'] : 0;
                     </tr>
                 `;
             });
-            
+
             tbody.innerHTML = html;
         }
 
@@ -308,11 +314,11 @@ $pending_count = $pending_result ? $pending_result->fetch_assoc()['total'] : 0;
             try {
                 const response = await fetch(`api/get_flight.php?id=${id}`);
                 const data = await response.json();
-                
+
                 if (data.success) {
                     document.getElementById('modalTitle').textContent = 'Edit Penerbangan';
                     document.getElementById('flightId').value = data.data.id;
-                    
+
                     const form = document.getElementById('flightForm');
                     form.maskapai.value = data.data.maskapai;
                     form.kode_penerbangan.value = data.data.kode_penerbangan;
@@ -324,7 +330,7 @@ $pending_count = $pending_result ? $pending_result->fetch_assoc()['total'] : 0;
                     form.harga.value = data.data.harga;
                     form.kapasitas.value = data.data.kapasitas;
                     form.status.value = data.data.status;
-                    
+
                     document.getElementById('flightModal').classList.remove('hidden');
                 }
             } catch (error) {
@@ -334,16 +340,18 @@ $pending_count = $pending_result ? $pending_result->fetch_assoc()['total'] : 0;
 
         async function deleteFlight(id) {
             if (!confirm('Yakin ingin menghapus penerbangan ini?')) return;
-            
+
             try {
                 const response = await fetch('api/delete_flight.php', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
                     body: 'id=' + id
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (data.success) {
                     alert('Penerbangan berhasil dihapus');
                     loadFlights();
@@ -357,21 +365,21 @@ $pending_count = $pending_result ? $pending_result->fetch_assoc()['total'] : 0;
 
         document.getElementById('flightForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
+
             const formData = new FormData(this);
             const submitBtn = this.querySelector('button[type="submit"]');
-            
+
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Menyimpan...';
-            
+
             try {
                 const response = await fetch('api/save_flight.php', {
                     method: 'POST',
                     body: formData
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (data.success) {
                     alert('Data berhasil disimpan');
                     closeModal();
@@ -396,4 +404,5 @@ $pending_count = $pending_result ? $pending_result->fetch_assoc()['total'] : 0;
         }
     </script>
 </body>
+
 </html>

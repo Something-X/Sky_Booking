@@ -110,6 +110,7 @@ $maxBookings = !empty($popularRoutes) ? $popularRoutes[0]['total_bookings'] : 1;
 ?>
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -136,33 +137,41 @@ $maxBookings = !empty($popularRoutes) ? $popularRoutes[0]['total_bookings'] : 1;
             width: 240px;
             transition: all 0.3s ease;
         }
+
         .sidebar.collapsed {
             width: 70px;
         }
+
         .sidebar-item {
             transition: all 0.2s ease;
         }
+
         .sidebar-item:hover {
             background: rgba(59, 130, 246, 0.1);
             transform: translateX(4px);
         }
+
         .sidebar-item.active {
             background: #3b82f6;
             color: white !important;
         }
+
         .metric-card {
             transition: all 0.3s ease;
         }
+
         .metric-card:hover {
             transform: translateY(-4px);
-            box-shadow: 0 12px 24px rgba(0,0,0,0.15);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
         }
+
         .chart-container {
             position: relative;
             height: 300px;
         }
     </style>
 </head>
+
 <body class="bg-gray-50 flex">
     <!-- Sidebar -->
     <?php include 'includes/sidebar.php'; ?>
@@ -184,12 +193,12 @@ $maxBookings = !empty($popularRoutes) ? $popularRoutes[0]['total_bookings'] : 1;
                     <button class="relative p-2 text-gray-500 hover:text-gray-700">
                         <i class="fas fa-bell text-xl"></i>
                         <?php if ($stats['total_pending'] > 0): ?>
-                        <span class="absolute top-0 right-0 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center"><?= $stats['total_pending'] ?></span>
+                            <span class="absolute top-0 right-0 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center"><?= $stats['total_pending'] ?></span>
                         <?php endif; ?>
                     </button>
                     <div class="flex items-center gap-3">
-                        <img src="https://ui-avatars.com/api/?name=<?= urlencode($_SESSION['admin_name'] ?? 'Admin') ?>&background=3b82f6&color=fff" 
-                             class="w-10 h-10 rounded-full">
+                        <img src="https://ui-avatars.com/api/?name=<?= urlencode($_SESSION['admin_name'] ?? 'Admin') ?>&background=3b82f6&color=fff"
+                            class="w-10 h-10 rounded-full">
                         <div>
                             <p class="text-sm font-semibold"><?= $_SESSION['admin_name'] ?? 'Administrator' ?></p>
                             <p class="text-xs text-gray-500">Administrator</p>
@@ -350,10 +359,9 @@ $maxBookings = !empty($popularRoutes) ? $popularRoutes[0]['total_bookings'] : 1;
                                     </div>
                                     <div class="text-right">
                                         <p class="font-semibold text-sm text-accent"><?= formatRupiah($booking['total_harga']) ?></p>
-                                        <span class="text-xs px-2 py-1 rounded-full <?= 
-                                            $booking['status'] === 'lunas' ? 'bg-green-100 text-green-700' :
-                                            ($booking['status'] === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700')
-                                        ?>"><?= ucfirst($booking['status']) ?></span>
+                                        <span class="text-xs px-2 py-1 rounded-full <?=
+                                                                                    $booking['status'] === 'lunas' ? 'bg-green-100 text-green-700' : ($booking['status'] === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700')
+                                                                                    ?>"><?= ucfirst($booking['status']) ?></span>
                                     </div>
                                 </div>
                             <?php endforeach; ?>
@@ -387,8 +395,8 @@ $maxBookings = !empty($popularRoutes) ? $popularRoutes[0]['total_bookings'] : 1;
                                         <p class="text-xs text-gray-500"><?= $route['total_bookings'] ?> bookings</p>
                                     </div>
                                     <div class="w-24 bg-gray-200 rounded-full h-2">
-                                        <div class="bg-gradient-to-r from-primary to-blue-600 h-2 rounded-full" 
-                                             style="width: <?= ($route['total_bookings'] / $maxBookings) * 100 ?>%"></div>
+                                        <div class="bg-gradient-to-r from-primary to-blue-600 h-2 rounded-full"
+                                            style="width: <?= ($route['total_bookings'] / $maxBookings) * 100 ?>%"></div>
                                     </div>
                                 </div>
                             <?php endforeach; ?>
@@ -404,12 +412,12 @@ $maxBookings = !empty($popularRoutes) ? $popularRoutes[0]['total_bookings'] : 1;
     <script>
         // Debug: Check if Chart.js loaded
         console.log('Chart.js loaded:', typeof Chart !== 'undefined');
-        
+
         // Wait for page to fully load
         window.addEventListener('DOMContentLoaded', function() {
             initCharts();
         });
-        
+
         function initCharts() {
             // Revenue Chart
             const revenueCtx = document.getElementById('revenueChart');
@@ -417,10 +425,10 @@ $maxBookings = !empty($popularRoutes) ? $popularRoutes[0]['total_bookings'] : 1;
                 console.error('Revenue chart canvas not found');
                 return;
             }
-            
+
             const monthlyData = <?= json_encode(array_values($monthlyRevenue)) ?>;
             console.log('Monthly data:', monthlyData);
-            
+
             try {
                 new Chart(revenueCtx, {
                     type: 'line',
@@ -489,13 +497,17 @@ $maxBookings = !empty($popularRoutes) ? $popularRoutes[0]['total_bookings'] : 1;
                 console.error('Status chart canvas not found');
                 return;
             }
-            
+
             const lunasCount = <?= $stats['total_lunas'] ?>;
             const pendingCount = <?= $stats['total_pending'] ?>;
             const batalCount = <?= $stats['total_batal'] ?>;
-            
-            console.log('Status data:', {lunas: lunasCount, pending: pendingCount, batal: batalCount});
-            
+
+            console.log('Status data:', {
+                lunas: lunasCount,
+                pending: pendingCount,
+                batal: batalCount
+            });
+
             try {
                 new Chart(statusCtx, {
                     type: 'doughnut',
@@ -534,20 +546,21 @@ $maxBookings = !empty($popularRoutes) ? $popularRoutes[0]['total_bookings'] : 1;
                 console.error('Error creating status chart:', error);
             }
         }
-        
+
         // Sidebar toggle
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             sidebar.classList.toggle('collapsed');
-            
+
             const texts = document.querySelectorAll('.sidebar-text');
             const labels = document.querySelectorAll('.sidebar-label');
             const upgradeSection = document.getElementById('upgrade-section');
-            
+
             texts.forEach(el => el.classList.toggle('hidden'));
             labels.forEach(el => el.classList.toggle('hidden'));
             if (upgradeSection) upgradeSection.classList.toggle('hidden');
         }
     </script>
 </body>
+
 </html>

@@ -561,6 +561,162 @@ $maxBookings = !empty($popularRoutes) ? $popularRoutes[0]['total_bookings'] : 1;
             if (upgradeSection) upgradeSection.classList.toggle('hidden');
         }
     </script>
+
+    <script>
+        // ============================================
+        // AUTO SCHEDULE SYSTEM - Jalan Otomatis
+        // ============================================
+
+        let autoScheduleEnabled = true;
+        let lastCheckTime = null;
+        let checkInterval = 2 * 60 * 60 * 1000; // 2 jam dalam milliseconds
+
+        // Function untuk check dan run auto schedule
+        async function runAutoSchedule() {
+            if (!autoScheduleEnabled) return;
+
+            console.log('🔄 Running auto schedule check...');
+
+            try {
+                const response = await fetch('api/auto_schedule_return.php');
+                const data = await response.json();
+
+                if (data.success) {
+                    lastCheckTime = new Date();
+
+                    if (data.generated > 0) {
+                        console.log(`✅ Auto Schedule Success: ${data.generated} flights generated`);
+
+                        // Tampilkan notifikasi (opsional)
+                        showNotification(
+                            `🛫 ${data.generated} jadwal penerbangan baru telah dibuat!`,
+                            'success'
+                        );
+
+                        // Log details
+                        if (data.details && data.details.length > 0) {
+                            data.details.forEach(detail => {
+                                if (detail.status === 'success') {
+                                    console.log(`  ✓ ${detail.flight}: ${detail.route} on ${detail.date} at ${detail.time}`);
+                                }
+                            });
+                        }
+                    } else {
+                        console.log('ℹ️ No new flights to schedule');
+                    }
+
+                    if (data.skipped > 0) {
+                        console.log(`⚠️ ${data.skipped} flights skipped`);
+                    }
+                } else {
+                    console.error('❌ Auto Schedule Error:', data.error);
+                }
+            } catch (error) {
+                console.error('❌ Auto Schedule Failed:', error);
+            }
+        }
+
+        // Function untuk show notification (opsional - jika pakai Bootstrap Toast)
+        function showNotification(message, type = 'info') {
+            // Cara 1: Alert sederhana
+            // alert(message);
+
+            // Cara 2: Console saja
+            console.log(`[NOTIFICATION] ${message}`);
+
+            // Cara 3: Jika pakai Bootstrap Toast (uncomment jika mau pakai)
+            /*
+            const toastHtml = `
+                <div class="toast align-items-center text-white bg-${type === 'success' ? 'success' : 'info'} border-0" role="alert">
+                    <div class="d-flex">
+                        <div class="toast-body">${message}</div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>
+            `;
+            
+            const toastContainer = document.querySelector('.toast-container') || createToastContainer();
+            toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+            
+            const toastElement = toastContainer.lastElementChild;
+            const toast = new bootstrap.Toast(toastElement);
+            toast.show();
+            
+            setTimeout(() => toastElement.remove(), 5000);
+            */
+        }
+
+        // Function untuk create toast container (jika belum ada)
+        function createToastContainer() {
+            const container = document.createElement('div');
+            container.className = 'toast-container position-fixed top-0 end-0 p-3';
+            document.body.appendChild(container);
+            return container;
+        }
+
+        // Run pertama kali saat halaman load
+        setTimeout(() => {
+            runAutoSchedule();
+        }, 5000); // Delay 5 detik setelah page load
+
+        // Set interval untuk run setiap 2 jam
+        setInterval(() => {
+            runAutoSchedule();
+        }, checkInterval);
+
+        // Display info di console
+        console.log(`
+╔════════════════════════════════════════╗
+║   AUTO SCHEDULE SYSTEM ACTIVE          ║
+╠════════════════════════════════════════╣
+║ • Check Interval: Every 2 hours        ║
+║ • Status: Running                      ║
+║ • Next check: ${new Date(Date.now() + checkInterval).toLocaleString('id-ID')} ║
+╚════════════════════════════════════════╝
+`);
+
+        // Optional: Tambahkan status indicator di UI
+        document.addEventListener('DOMContentLoaded', function() {
+            // Cek apakah ada container untuk status
+            const statusContainer = document.querySelector('.auto-schedule-status');
+            if (statusContainer) {
+                statusContainer.innerHTML = `
+            <div class="alert alert-success alert-sm">
+                <i class="bi bi-check-circle"></i> 
+                Auto Schedule: <strong>Active</strong> 
+                <small>(Check setiap 2 jam)</small>
+            </div>
+        `;
+            }
+        });
+    </script>
+
+    <!-- Optional: Tambahkan CSS untuk styling -->
+    <style>
+        .auto-schedule-status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            max-width: 300px;
+        }
+
+        .auto-schedule-status .alert {
+            margin: 0;
+            padding: 10px 15px;
+            font-size: 0.85rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .toast-container {
+            z-index: 10000;
+        }
+    </style>
+
+    <!-- Optional: Tambahkan div untuk status indicator di body -->
+    <!-- <div class="auto-schedule-status"></div> -->
+
+    <!-- END OF AUTO SCHEDULE SCRIPT -->
 </body>
 
 </html>

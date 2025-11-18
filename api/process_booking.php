@@ -3,10 +3,19 @@ require_once '../config.php';
 
 header('Content-Type: application/json');
 
+// ✅ PASTIKAN USER SUDAH LOGIN
+if (!isLoggedIn()) {
+    echo json_encode(['success' => false, 'message' => 'Silakan login terlebih dahulu']);
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['success' => false, 'message' => 'Invalid request method']);
     exit;
 }
+
+// ✅ AMBIL USER ID DARI SESSION
+$user_id = (int)$_SESSION['user_id'];
 
 // Validasi input
 $id_penerbangan = (int)$_POST['id_penerbangan'];
@@ -57,12 +66,12 @@ try {
     // Hitung total harga
     $total_harga = $flight['harga'] * $jumlah_penumpang;
     
-    // Insert pemesanan
-    $sql = "INSERT INTO pemesanan (id_penerbangan, kode_booking, nama_pemesan, email, no_hp, jumlah_penumpang, total_harga, status) 
-            VALUES ($id_penerbangan, '$kode_booking', '$nama_pemesan', '$email', '$no_hp', $jumlah_penumpang, $total_harga, 'pending')";
+    // ✅ INSERT PEMESANAN DENGAN USER_ID
+    $sql = "INSERT INTO pemesanan (user_id, id_penerbangan, kode_booking, nama_pemesan, email, no_hp, jumlah_penumpang, total_harga, status) 
+            VALUES ($user_id, $id_penerbangan, '$kode_booking', '$nama_pemesan', '$email', '$no_hp', $jumlah_penumpang, $total_harga, 'pending')";
     
     if (!$conn->query($sql)) {
-        throw new Exception('Gagal menyimpan pemesanan');
+        throw new Exception('Gagal menyimpan pemesanan: ' . $conn->error);
     }
     
     $id_pemesanan = $conn->insert_id;
@@ -78,14 +87,14 @@ try {
                 VALUES ($id_pemesanan, '$nama', '$gender', '$tgl_lahir', '$nik')";
         
         if (!$conn->query($sql)) {
-            throw new Exception('Gagal menyimpan data penumpang');
+            throw new Exception('Gagal menyimpan data penumpang: ' . $conn->error);
         }
     }
     
     // Update kursi tersedia
     $sql = "UPDATE penerbangan SET tersedia = tersedia - $jumlah_penumpang WHERE id = $id_penerbangan";
     if (!$conn->query($sql)) {
-        throw new Exception('Gagal update kursi tersedia');
+        throw new Exception('Gagal update kursi tersedia: ' . $conn->error);
     }
     
     // Commit transaksi

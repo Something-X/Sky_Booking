@@ -18,7 +18,7 @@ if (empty($asal) || empty($tujuan) || empty($tanggal)) {
     exit;
 }
 
-// Query pencarian dengan LIKE untuk fleksibilitas
+// Query pencarian dengan LIKE untuk fleksibilitas 
 $sql = "SELECT * FROM penerbangan 
         WHERE (asal LIKE '%$asal%')
         AND (tujuan LIKE '%$tujuan%')

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Get User Notifications/Messages
  * Path: /api/get_notifications.php
@@ -28,22 +29,21 @@ try {
                 JOIN support_tickets st ON sr.ticket_id = st.id
                 WHERE st.user_id = ? 
                 AND sr.read_by_user = 0";
-        
+
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("i", $user_id);
         $stmt->execute();
         $result = $stmt->get_result();
         $row = $result->fetch_assoc();
-        
+
         echo json_encode([
             'success' => true,
             'unread_count' => (int)$row['unread_count']
         ]);
-        
     } elseif ($action === 'list') {
         // ========== GET MESSAGE LIST ==========
         $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 10;
-        
+
         $sql = "SELECT 
                     sr.id as response_id,
                     sr.ticket_id,
@@ -53,6 +53,7 @@ try {
                     st.subjek,
                     st.kategori,
                     st.status,
+                    st.admin_notes, -- Tambahkan kolom ini agar bisa diakses JS jika perlu
                     a.nama_lengkap as admin_name
                 FROM support_responses sr
                 JOIN support_tickets st ON sr.ticket_id = st.id
@@ -60,46 +61,45 @@ try {
                 WHERE st.user_id = ?
                 ORDER BY sr.created_at DESC
                 LIMIT ?";
-        
+
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("ii", $user_id, $limit);
         $stmt->execute();
         $result = $stmt->get_result();
-        
+
         $messages = [];
         while ($row = $result->fetch_assoc()) {
             $messages[] = $row;
         }
-        
+
         echo json_encode([
             'success' => true,
             'messages' => $messages,
             'total' => count($messages)
         ]);
-        
     } elseif ($action === 'mark_read') {
         // ========== MARK AS READ ==========
         $response_id = isset($_POST['response_id']) ? (int)$_POST['response_id'] : 0;
-        
+
         if ($response_id > 0) {
             // Verify ownership
             $sql_verify = "SELECT sr.id 
                           FROM support_responses sr
                           JOIN support_tickets st ON sr.ticket_id = st.id
                           WHERE sr.id = ? AND st.user_id = ?";
-            
+
             $stmt = $conn->prepare($sql_verify);
             $stmt->bind_param("ii", $response_id, $user_id);
             $stmt->execute();
             $result = $stmt->get_result();
-            
+
             if ($result->num_rows > 0) {
                 // Mark as read
                 $sql_update = "UPDATE support_responses SET read_by_user = 1 WHERE id = ?";
                 $stmt = $conn->prepare($sql_update);
                 $stmt->bind_param("i", $response_id);
                 $stmt->execute();
-                
+
                 echo json_encode([
                     'success' => true,
                     'message' => 'Marked as read'
@@ -116,25 +116,23 @@ try {
                 'message' => 'Invalid response ID'
             ]);
         }
-        
     } elseif ($action === 'mark_all_read') {
         // ========== MARK ALL AS READ ==========
         $sql = "UPDATE support_responses sr
                 JOIN support_tickets st ON sr.ticket_id = st.id
                 SET sr.read_by_user = 1
                 WHERE st.user_id = ? AND sr.read_by_user = 0";
-        
+
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("i", $user_id);
         $stmt->execute();
-        
+
         echo json_encode([
             'success' => true,
             'message' => 'All messages marked as read',
             'affected_rows' => $stmt->affected_rows
         ]);
     }
-    
 } catch (Exception $e) {
     error_log("Get Notifications Error: " . $e->getMessage());
     echo json_encode([
@@ -142,4 +140,3 @@ try {
         'message' => 'Error: ' . $e->getMessage()
     ]);
 }
-?>

@@ -221,7 +221,7 @@ async function editPesawat(id) {
       form.nomor_registrasi.value = p.nomor_registrasi;
       form.model.value = p.model;
       form.kapasitas.value = p.kapasitas;
-      
+
       // Set kelas layanan
       const kelasSelect = form.kelas_layanan;
       if (kelasSelect) {
@@ -230,7 +230,7 @@ async function editPesawat(id) {
       } else {
         console.warn("⚠ Kelas layanan field not found in form");
       }
-      
+
       form.airport_id.value = p.airport_id || "";
       form.status_pesawat.value = p.status_pesawat;
 
@@ -617,92 +617,93 @@ document
   });
 
 // ========================================
-// ARRIVED FUNCTIONS
+// PESAWAT TERSEDIA FUNCTIONS
 // ========================================
 async function loadArrived() {
   try {
-    const response = await fetch("api/get_arrived_flights.php");
+    const response = await fetch("api/get_available_aircraft.php");
     const data = await response.json();
 
     if (data.success) {
       displayArrived(data.data);
       updateArrivedCount(data.data.length);
+    } else {
+      showError(data.message || "Gagal memuat data pesawat tersedia");
     }
   } catch (error) {
     console.error("Error:", error);
-    showError("Gagal memuat data pesawat tiba");
+    showError("Gagal memuat data pesawat tersedia");
   }
 }
 
-function displayArrived(flights) {
+function displayArrived(aircraft) {
   const tbody = document.getElementById("arrivedTableBody");
 
-  if (flights.length === 0) {
+  if (aircraft.length === 0) {
     tbody.innerHTML = `
-            <tr>
-                <td colspan="6" class="px-6 py-8 text-center text-gray-500">
-                    <i class="fas fa-plane-arrival text-4xl mb-2"></i>
-                    <p>Belum ada pesawat yang tiba</p>
-                </td>
-            </tr>
-        `;
+      <tr>
+        <td colspan="6" class="px-6 py-8 text-center text-gray-500">
+          <i class="fas fa-plane-slash text-4xl mb-2"></i>
+          <p>Semua pesawat operasional sudah memiliki jadwal</p>
+          <p class="text-xs mt-2">Pesawat tanpa jadwal akan muncul di sini</p>
+        </td>
+      </tr>
+    `;
     return;
   }
 
   let html = "";
-  flights.forEach((f) => {
+  aircraft.forEach((a) => {
+    // CLASS BADGES untuk Kelas Layanan
+    const kelasClass =
+      {
+        "Economy Class": "bg-blue-100 text-blue-800",
+        "Business Class": "bg-purple-100 text-purple-800",
+        "First Class": "bg-amber-100 text-amber-800",
+      }[a.kelas_layanan] || "bg-gray-100 text-gray-800";
+
     html += `
-            <tr class="border-b border-gray-200 hover:bg-green-50 transition">
-                <td class="px-6 py-4">
-                    <span class="font-mono text-sm font-semibold">${
-                      f.kode_penerbangan
-                    }</span>
-                </td>
-                <td class="px-6 py-4">
-                    <div class="text-sm font-semibold">${
-                      f.pesawat_nomor || "N/A"
-                    }</div>
-                    <div class="text-xs text-gray-500">${f.maskapai} - ${
-                      f.aircraft_type
-                    }</div>
-                </td>
-                <td class="px-6 py-4">
-                    <div class="text-sm font-semibold text-green-600">
-                        <i class="fas fa-map-marker-alt mr-1"></i>${f.tujuan}
-                    </div>
-                </td>
-                <td class="px-6 py-4">
-                    <div class="text-sm">${formatTanggal(f.tanggal)}</div>
-                    <div class="text-xs text-gray-500">${f.jam_tiba}</div>
-                </td>
-                <td class="px-6 py-4 text-center">
-                    <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-semibold">
-                        <i class="fas fa-check-circle mr-1"></i>TIBA
-                    </span>
-                </td>
-                <td class="px-6 py-4 text-center">
-                    <button onclick="createReturnFlight(${f.id}, ${
-                      f.pesawat_id || "null"
-                    })" 
-                        class="bg-primary hover:bg-secondary text-white font-bold px-4 py-2 rounded-lg transition duration-300 text-sm shadow-lg hover:shadow-xl">
-                        <i class="fas fa-calendar-plus mr-2"></i>Buat Jadwal Baru
-                    </button>
-                </td>
-            </tr>
-        `;
+      <tr class="border-b border-gray-200 hover:bg-green-50 transition">
+        <td class="px-6 py-4">
+          <span class="font-mono text-sm font-semibold">${a.nomor_registrasi}</span>
+        </td>
+        <td class="px-6 py-4">
+          <div class="text-sm font-semibold">${a.maskapai}</div>
+          <div class="text-xs text-gray-500">${a.model}</div>
+        </td>
+        <td class="px-6 py-4">
+          <div class="text-sm font-semibold text-green-600">
+            <i class="fas fa-map-marker-alt mr-1"></i>${a.lokasi_terakhir || "Tidak diketahui"}
+          </div>
+        </td>
+        <td class="px-6 py-4 text-center">
+          <div class="text-sm">Kapasitas: ${a.kapasitas}</div>
+          <div class="text-xs mt-1">
+            <span class="${kelasClass} px-2 py-1 rounded-full font-semibold">
+              ${a.kelas_layanan || "Economy Class"}
+            </span>
+          </div>
+        </td>
+        <td class="px-6 py-4 text-center">
+          <span class="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-xs font-semibold">
+            <i class="fas fa-clock mr-1"></i>MENUNGGU JADWAL
+          </span>
+        </td>
+        <td class="px-6 py-4 text-center">
+          <button onclick="createFlightForAircraft(${a.id})" 
+            class="bg-primary hover:bg-secondary text-white font-bold px-4 py-2 rounded-lg transition duration-300 text-sm shadow-lg hover:shadow-xl">
+            <i class="fas fa-calendar-plus mr-2"></i>Buat Jadwal
+          </button>
+        </td>
+      </tr>
+    `;
   });
 
   tbody.innerHTML = html;
 }
 
-async function createReturnFlight(flightId, pesawatId) {
-  console.log(
-    "=== Creating return flight for:",
-    flightId,
-    "with aircraft:",
-    pesawatId,
-    "===",
-  );
+async function createFlightForAircraft(pesawatId) {
+  console.log("=== Creating flight schedule for aircraft:", pesawatId, "===");
 
   document.getElementById("jadwalForm").reset();
   document.getElementById("jadwalId").value = "";
@@ -722,53 +723,48 @@ async function createReturnFlight(flightId, pesawatId) {
     pesawatSelect.innerHTML = '<option value="">Memuat...</option>';
 
   try {
-    const [_, __, flightResponse] = await Promise.all([
-      loadAirports(),
-      loadOperationalPesawat(),
-      fetch(`api/get_jadwal_detail.php?id=${flightId}`),
-    ]);
+    // Load airports dan pesawat
+    await Promise.all([loadAirports(), loadOperationalPesawat()]);
 
-    const data = await flightResponse.json();
-    console.log("Original flight data:", data);
+    // Get aircraft details
+    const response = await fetch(`api/get_pesawat_detail.php?id=${pesawatId}`);
+    const data = await response.json();
 
     if (data.success) {
-      const originalFlight = data.data;
+      const aircraft = data.data;
       const form = document.getElementById("jadwalForm");
 
-      if (pesawatId && pesawatId !== "null") {
-        form.pesawat_id.value = pesawatId;
+      // Pre-select the aircraft
+      form.pesawat_id.value = pesawatId;
+
+      // Set origin to aircraft's current location if available
+      if (aircraft.airport_id) {
+        form.origin_airport_id.value = aircraft.airport_id;
       }
-      form.kode_penerbangan.value = originalFlight.kode_penerbangan + "-R";
-      form.origin_airport_id.value =
-        originalFlight.destination_airport_id || "";
-      form.destination_airport_id.value =
-        originalFlight.origin_airport_id || "";
-      form.harga.value = originalFlight.harga || "";
 
-      console.log("Pre-filled return flight:", {
-        pesawat: form.pesawat_id.value,
-        origin: form.origin_airport_id.value,
-        dest: form.destination_airport_id.value,
-      });
-
+      // Set minimum date to today
       const today = new Date().toISOString().split("T")[0];
       form.tanggal.setAttribute("min", today);
       form.tanggal.value = today;
 
-      console.log("=== Return flight form ready ===");
+      console.log(
+        "=== Flight form ready for aircraft:",
+        aircraft.nomor_registrasi,
+        "===",
+      );
     } else {
-      showError("Gagal memuat detail penerbangan");
+      showError("Gagal memuat detail pesawat");
     }
   } catch (error) {
-    console.error("Error in createReturnFlight:", error);
-    showError("Gagal memuat data penerbangan");
+    console.error("Error in createFlightForAircraft:", error);
+    showError("Gagal memuat data pesawat");
   }
 }
 
 async function updateArrivedCount(count = null) {
   if (count === null) {
     try {
-      const response = await fetch("api/get_arrived_flights.php");
+      const response = await fetch("api/get_available_aircraft.php");
       const data = await response.json();
       count = data.success ? data.data.length : 0;
     } catch (error) {

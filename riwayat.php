@@ -1,83 +1,298 @@
 <?php require_once 'config.php'; ?>
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Riwayat Pemesanan - SkyBooking</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#0066cc',
-                        secondary: '#004999',
-                        accent: '#ff6b35'
-                    }
-                }
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        }
+
+        .page-header {
+            background: linear-gradient(135deg, #3b82f6 0%, #1e3a8a 100%);
+            padding: 4rem 0 6rem 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .page-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 50%;
+            height: 100%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="2" fill="white" opacity="0.1"/></svg>') repeat;
+            opacity: 0.5;
+        }
+
+        .search-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(30, 58, 138, 0.15);
+            margin-top: -3rem;
+            position: relative;
+            z-index: 10;
+        }
+
+        .booking-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s;
+            overflow: hidden;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .booking-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(30, 58, 138, 0.2);
+        }
+
+        .status-badge {
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-pending {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            color: #92400e;
+        }
+
+        .status-lunas {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            color: #065f46;
+        }
+
+        .status-batal {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            color: #991b1b;
+        }
+
+        .status-expired {
+            background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
+            color: #1f2937;
+        }
+
+        .detail-modal {
+            backdrop-filter: blur(8px);
+        }
+
+        .modal-content {
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
             }
         }
-    </script>
+
+        .info-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 0;
+        }
+
+        .info-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #3b82f6;
+        }
+
+        .action-button {
+            padding: 10px 24px;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(239, 68, 68, 0.3);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+
+        .empty-icon {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 2rem;
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .search-input {
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 14px 18px;
+            font-size: 15px;
+            transition: all 0.3s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        }
+
+        /* Loading spinner animation */
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .btn-loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        .btn-loading i {
+            animation: spin 1s linear infinite;
+        }
+
+        /* Navbar blur effect saat modal terbuka */
+        body.modal-open #navbar {
+            filter: blur(4px);
+            pointer-events: none;
+        }
+
+        body.modal-open .page-header,
+        body.modal-open .container {
+            filter: blur(4px);
+            pointer-events: none;
+        }
+
+        /* Sembunyikan scrollbar pada modal */
+        .modal-content {
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* Internet Explorer 10+ */
+        }
+
+        .modal-content::-webkit-scrollbar {
+            display: none; /* Chrome, Safari, Opera */
+        }
+    </style>
 </head>
-<body class="bg-gray-50">
+
+<body>
     <!-- Navbar -->
-    <nav class="bg-gradient-to-r from-primary to-secondary shadow-lg">
-        <div class="container mx-auto px-4">
-            <div class="flex items-center justify-between h-16">
-                <a href="index.php" class="text-white text-2xl font-bold flex items-center">
-                    <i class="fas fa-plane-departure mr-2"></i>SkyBooking
-                </a>
-                <div class="hidden md:flex space-x-6">
-                    <a href="index.php" class="text-white hover:text-gray-200 transition">Home</a>
-                    <a href="riwayat.php" class="text-white hover:text-gray-200 transition border-b-2 border-white">Riwayat Pemesanan</a>
-                    <?php if (isAdmin()): ?>
-                        <a href="admin/dashboard.php" class="text-white hover:text-gray-200 transition">Dashboard Admin</a>
-                        <a href="admin/logout.php" class="text-white hover:text-gray-200 transition">Logout</a>
-                    <?php else: ?>
-                        <a href="admin/login.php" class="text-white hover:text-gray-200 transition">Login Admin</a>
-                    <?php endif; ?>
-                </div>
+    <?php include 'includes/navbar.php'; ?>
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="container mx-auto px-4" style="position: relative; z-index: 10;">
+            <div class="max-w-4xl">
+                <h1 class="text-5xl font-bold text-white mb-4">
+                    <i class="fas fa-history mr-4 mt-[60px]"></i>
+                    Riwayat Pemesanan
+                </h1>
+                <p class="text-blue-100 text-lg">Lihat dan kelola semua riwayat pemesanan tiket penerbangan Anda</p>
             </div>
-        </div>
-    </nav>
-
-    <div class="container mx-auto px-4 py-12">
-        <div class="max-w-5xl mx-auto">
-            <h1 class="text-4xl font-bold text-gray-800 mb-8 flex items-center">
-                <i class="fas fa-history mr-4 text-primary"></i>
-                Riwayat Pemesanan
-            </h1>
-
-            <!-- Search Box -->
-            <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
-                <div class="flex flex-col md:flex-row gap-4">
-                    <input type="text" id="searchInput" placeholder="Cari berdasarkan kode booking, nama, atau email..."
-                           class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
-                    <button onclick="searchBooking()" class="bg-primary hover:bg-secondary text-white font-bold px-8 py-3 rounded-lg transition duration-300">
-                        <i class="fas fa-search mr-2"></i>Cari
-                    </button>
-                </div>
-            </div>
-
-            <!-- Loading -->
-            <div id="loadingSpinner" class="text-center hidden">
-                <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-                <p class="mt-4 text-gray-600">Memuat data...</p>
-            </div>
-
-            <!-- Results -->
-            <div id="resultsContainer"></div>
         </div>
     </div>
 
+    <div class="container mx-auto px-4 pb-12">
+        <!-- Search Box -->
+        <div class="search-card max-w-4xl mx-auto p-6 mb-8">
+            <div class="flex flex-col md:flex-row gap-4">
+                <div class="flex-1 relative">
+                    <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    <input type="text"
+                        id="searchInput"
+                        placeholder="Cari berdasarkan kode booking, nama, atau email..."
+                        class="search-input w-full pl-12"
+                        style="padding-left: 48px;">
+                </div>
+                <button onclick="searchBooking()"
+                    class="action-button btn-primary">
+                    <i class="fas fa-search"></i>
+                    Cari
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading -->
+        <div id="loadingSpinner" class="text-center py-12 hidden">
+            <div class="inline-block animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600"></div>
+            <p class="mt-4 text-gray-600 font-semibold">Memuat data pemesanan...</p>
+        </div>
+
+        <!-- Results -->
+        <div id="resultsContainer" class="max-w-4xl mx-auto"></div>
+    </div>
+
     <!-- Detail Modal -->
-    <div id="detailModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-            <div class="sticky top-0 bg-white border-b border-gray-200 px-8 py-6 flex justify-between items-center">
-                <h3 class="text-2xl font-bold text-gray-800">Detail Pemesanan</h3>
-                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-2xl">
+    <div id="detailModal" class="hidden fixed inset-0 bg-black bg-opacity-50 detail-modal z-[1100] flex items-center justify-center p-4">
+        <div class="modal-content bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto relative z-[1101]">
+            <div class="sticky top-0 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-8 py-6 flex justify-between items-center z-10">
+                <h3 class="text-2xl font-bold">Detail Pemesanan</h3>
+                <button onclick="closeModal()" class="text-white hover:text-blue-200 text-2xl">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
@@ -86,7 +301,6 @@
     </div>
 
     <script>
-        // Load semua pemesanan saat halaman dimuat
         window.addEventListener('DOMContentLoaded', function() {
             loadBookings();
         });
@@ -94,39 +308,42 @@
         async function loadBookings(search = '') {
             const loadingSpinner = document.getElementById('loadingSpinner');
             const resultsContainer = document.getElementById('resultsContainer');
-            
+
             loadingSpinner.classList.remove('hidden');
             resultsContainer.innerHTML = '';
-            
+
             try {
                 const response = await fetch('api/get_bookings.php?search=' + encodeURIComponent(search));
                 const data = await response.json();
-                
+
                 loadingSpinner.classList.add('hidden');
-                
+
                 if (data.success && data.data.length > 0) {
                     displayBookings(data.data);
                 } else {
                     resultsContainer.innerHTML = `
-                        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-6 rounded-lg">
-                            <div class="flex items-center">
-                                <i class="fas fa-info-circle text-yellow-400 text-2xl mr-4"></i>
-                                <div>
-                                    <p class="font-semibold text-yellow-700">Tidak ada data pemesanan</p>
-                                    <p class="text-yellow-600 text-sm mt-1">Belum ada riwayat pemesanan atau data tidak ditemukan</p>
-                                </div>
+                        <div class="empty-state">
+                            <div class="empty-icon">
+                                <i class="fas fa-ticket-alt text-5xl text-blue-400"></i>
                             </div>
+                            <h3 class="text-2xl font-bold text-gray-800 mb-2">Tidak Ada Riwayat Pemesanan</h3>
+                            <p class="text-gray-600 mb-6">Belum ada riwayat pemesanan atau data tidak ditemukan</p>
+                            <button onclick="window.location.href='index.php'" class="action-button btn-primary">
+                                <i class="fas fa-search"></i>
+                                Cari Penerbangan
+                            </button>
                         </div>
                     `;
                 }
             } catch (error) {
                 loadingSpinner.classList.add('hidden');
                 resultsContainer.innerHTML = `
-                    <div class="bg-red-50 border-l-4 border-red-400 p-6 rounded-lg">
-                        <div class="flex items-center">
-                            <i class="fas fa-exclamation-triangle text-red-400 text-2xl mr-4"></i>
-                            <p class="text-red-700">Terjadi kesalahan saat memuat data</p>
+                    <div class="empty-state">
+                        <div class="empty-icon">
+                            <i class="fas fa-exclamation-triangle text-5xl text-red-400"></i>
                         </div>
+                        <h3 class="text-2xl font-bold text-gray-800 mb-2">Terjadi Kesalahan</h3>
+                        <p class="text-gray-600">Gagal memuat data pemesanan</p>
                     </div>
                 `;
             }
@@ -137,7 +354,6 @@
             loadBookings(search);
         }
 
-        // Enter key untuk search
         document.getElementById('searchInput').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 searchBooking();
@@ -147,135 +363,304 @@
         function displayBookings(bookings) {
             const container = document.getElementById('resultsContainer');
             let html = '';
-            
+
             bookings.forEach(booking => {
-                // Check if expired
                 const flightDate = new Date(booking.tanggal);
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
                 const isExpired = flightDate < today && booking.status === 'pending';
-                
-                const statusClass = {
-                    'pending': isExpired ? 'bg-gray-100 text-gray-800' : 'bg-yellow-100 text-yellow-800',
-                    'lunas': 'bg-green-100 text-green-800',
-                    'batal': 'bg-red-100 text-red-800'
-                }[booking.status] || 'bg-gray-100 text-gray-800';
-                
-                const statusIcon = {
-                    'pending': isExpired ? 'fa-ban' : 'fa-clock',
-                    'lunas': 'fa-check-circle',
-                    'batal': 'fa-times-circle'
-                }[booking.status] || 'fa-question-circle';
-                
-                const statusText = isExpired ? 'KADALUARSA' : booking.status.toUpperCase();
-                
+
+                let statusClass, statusIcon, statusText;
+
+                if (isExpired) {
+                    statusClass = 'status-expired';
+                    statusIcon = 'fa-ban';
+                    statusText = 'KADALUARSA';
+                } else {
+                    const statusMap = {
+                        'pending': {
+                            class: 'status-pending',
+                            icon: 'fa-clock',
+                            text: 'PENDING'
+                        },
+                        'lunas': {
+                            class: 'status-lunas',
+                            icon: 'fa-check-circle',
+                            text: 'LUNAS'
+                        },
+                        'batal': {
+                            class: 'status-batal',
+                            icon: 'fa-times-circle',
+                            text: 'BATAL'
+                        }
+                    };
+                    const status = statusMap[booking.status] || statusMap['pending'];
+                    statusClass = status.class;
+                    statusIcon = status.icon;
+                    statusText = status.text;
+                }
+
                 html += `
-                    <div class="bg-white rounded-xl shadow-md hover:shadow-xl transition duration-300 p-6 mb-4 ${isExpired ? 'opacity-75' : ''}">
-                        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                            <div class="flex-1">
-                                <div class="flex items-center gap-3 mb-3">
-                                    <span class="text-2xl font-bold text-primary">${booking.kode_booking}</span>
-                                    <span class="${statusClass} px-3 py-1 rounded-full text-sm font-semibold">
-                                        <i class="fas ${statusIcon} mr-1"></i>
+                    <div class="booking-card mb-6 ${isExpired ? 'opacity-75' : ''}">
+                        <div class="p-6">
+                            <!-- Header -->
+                            <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center">
+                                        <i class="fas fa-plane text-white text-2xl"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-2xl font-bold text-gray-800">${booking.kode_booking}</h3>
+                                        <p class="text-sm text-gray-500">Tanggal Booking: ${booking.created_at || '-'}</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="status-badge ${statusClass}">
+                                        <i class="fas ${statusIcon}"></i>
                                         ${statusText}
                                     </span>
-                                    ${isExpired ? '<span class="bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold animate-pulse">EXPIRED</span>' : ''}
+                                    ${isExpired ? '<span class="status-badge" style="background: #ef4444; color: white;"><i class="fas fa-exclamation-triangle"></i> EXPIRED</span>' : ''}
                                 </div>
-                                
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                    <div>
-                                        <div class="flex items-center text-gray-600 mb-2">
-                                            <i class="fas fa-user w-5 mr-2"></i>
-                                            <span class="font-semibold">${booking.nama_pemesan}</span>
+                            </div>
+
+                            <!-- Flight Info -->
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                                <div>
+                                    <h5 class="text-xs font-semibold text-gray-500 mb-2 uppercase">Penerbangan</h5>
+                                    <div class="info-row">
+                                        <div class="info-icon">
+                                            <i class="fas fa-plane-departure"></i>
                                         </div>
-                                        <div class="flex items-center text-gray-600 mb-2">
-                                            <i class="fas fa-envelope w-5 mr-2"></i>
-                                            <span>${booking.email}</span>
-                                        </div>
-                                        <div class="flex items-center text-gray-600">
-                                            <i class="fas fa-phone w-5 mr-2"></i>
-                                            <span>${booking.no_hp}</span>
+                                        <div class="flex-1">
+                                            <p class="font-bold text-gray-800">${booking.maskapai}</p>
+                                            <p class="text-sm text-gray-600">${booking.asal} → ${booking.tujuan}</p>
                                         </div>
                                     </div>
-                                    
-                                    <div>
-                                        <div class="flex items-center text-gray-600 mb-2">
-                                            <i class="fas fa-plane w-5 mr-2"></i>
-                                            <span class="font-semibold">${booking.maskapai}</span>
+                                </div>
+
+                                <div>
+                                    <h5 class="text-xs font-semibold text-gray-500 mb-2 uppercase">Tanggal</h5>
+                                    <div class="info-row">
+                                        <div class="info-icon">
+                                            <i class="fas fa-calendar-alt"></i>
                                         </div>
-                                        <div class="flex items-center text-gray-600 mb-2">
-                                            <i class="fas fa-map-marker-alt w-5 mr-2"></i>
-                                            <span>${booking.asal} → ${booking.tujuan}</span>
+                                        <div class="flex-1">
+                                            <p class="font-bold text-gray-800 ${isExpired ? 'text-red-600' : ''}">${booking.tanggal}</p>
+                                            <p class="text-sm text-gray-600">${booking.jumlah_penumpang} Penumpang</p>
                                         </div>
-                                        <div class="flex items-center text-gray-600">
-                                            <i class="fas fa-calendar w-5 mr-2"></i>
-                                            <span class="${isExpired ? 'text-red-600 font-semibold' : ''}">${booking.tanggal}</span>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h5 class="text-xs font-semibold text-gray-500 mb-2 uppercase">Total Harga</h5>
+                                    <div class="info-row">
+                                        <div class="info-icon">
+                                            <i class="fas fa-money-bill-wave"></i>
+                                        </div>
+                                        <div class="flex-1">
+                                            <p class="font-bold text-2xl text-blue-600">${formatRupiah(booking.total_harga)}</p>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            
-                            <div class="flex flex-col items-end gap-3">
-                                <div class="text-right">
-                                    <div class="text-sm text-gray-500">Total Harga</div>
-                                    <div class="text-2xl font-bold text-accent">${formatRupiah(booking.total_harga)}</div>
-                                    <div class="text-sm text-gray-500">${booking.jumlah_penumpang} penumpang</div>
+
+                            <!-- Passenger Info -->
+                            <div class="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-4 mb-6">
+                                <h5 class="text-xs font-semibold text-gray-600 mb-3 uppercase">Informasi Pemesan</h5>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-user text-blue-600"></i>
+                                        <span class="text-sm text-gray-700">${booking.nama_pemesan}</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-envelope text-blue-600"></i>
+                                        <span class="text-sm text-gray-700">${booking.email}</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <i class="fas fa-phone text-blue-600"></i>
+                                        <span class="text-sm text-gray-700">${booking.no_hp}</span>
+                                    </div>
                                 </div>
-                                <div class="flex gap-2">
-                                    <button onclick="showDetail(${booking.id})" 
-                                            class="bg-primary hover:bg-secondary text-white font-bold px-6 py-2 rounded-lg transition duration-300">
-                                        <i class="fas fa-eye mr-2"></i>Detail
+                            </div>
+
+                            <!-- Actions -->
+                            <div class="flex flex-wrap gap-3 justify-end">
+                                <button onclick="showDetail(${booking.id})" class="action-button btn-primary">
+                                    <i class="fas fa-eye"></i>
+                                    Lihat Detail
+                                </button>
+                                ${booking.status === 'lunas' || booking.status === 'pending' ? `
+                                    <button id="invoiceBtn${booking.id}" onclick="sendInvoice(${booking.id}, '${booking.email}')" class="action-button btn-success">
+                                        <i class="fas fa-envelope"></i>
+                                        Kirim Invoice
                                     </button>
-                                    ${isExpired || booking.status === 'batal' ? `
-                                        <button onclick="deleteBooking(${booking.id})" 
-                                                class="bg-red-500 hover:bg-red-600 text-white font-bold px-6 py-2 rounded-lg transition duration-300">
-                                            <i class="fas fa-trash mr-2"></i>Hapus
-                                        </button>
-                                    ` : ''}
-                                </div>
+                                ` : ''}
+                                ${isExpired || booking.status === 'batal' ? `
+                                <button onclick="deleteBooking(${booking.id})" class="action-button btn-danger">
+                                <i class="fas fa-trash"></i>
+                                        Hapus
+                                    </button>
+                                ` : ''}
                             </div>
                         </div>
                     </div>
                 `;
             });
-            
+
             container.innerHTML = html;
+        }
+
+        async function sendInvoice(bookingId, email) {
+            const btn = document.getElementById('invoiceBtn' + bookingId);
+            const originalHTML = btn.innerHTML;
+
+            // Disable button and show loading
+            btn.classList.add('btn-loading');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Mengirim...';
+
+            console.log("Mengirim invoice untuk ID:", bookingId, "ke Email:", email);
+
+            try {
+                const formData = new FormData();
+                formData.append('id', bookingId);
+
+                const response = await fetch('api/send_infoice.php', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                console.log("HTTP Response Status:", response.status);
+
+                const responseText = await response.text();
+                console.log("Raw Response dari Server:", responseText);
+
+                // const data = await response.json();
+
+                // Coba parsing sebagai JSON
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                } catch (e) {
+                    console.error("Gagal parsing JSON. Kemungkinan ada error PHP/HTML di file api:", e);
+                    showNotification('error', 'Format respons server tidak valid (Cek Console)');
+                    btn.innerHTML = originalHTML;
+                    btn.classList.remove('btn-loading');
+                    return;
+                }
+
+                console.log("Parsed JSON Data:", data);
+
+                if (data.success) {
+                    // Success notification
+                    showNotification('success', data.message || 'Invoice berhasil dikirim ke ' + email);
+                    btn.innerHTML = '<i class="fas fa-check-circle"></i> Terkirim';
+                    setTimeout(() => {
+                        btn.innerHTML = originalHTML;
+                        btn.classList.remove('btn-loading');
+                    }, 3000);
+                } else {
+                    console.warn("Server merespons success:false - Pesan:", data.message);
+                    showNotification('error', data.message || 'Gagal mengirim invoice');
+                    btn.innerHTML = originalHTML;
+                    btn.classList.remove('btn-loading');
+                }
+            } catch (error) {
+                console.error("Fetch Error:", error);
+                showNotification('error', 'Terjadi kesalahan saat mengirim invoice');
+                btn.innerHTML = originalHTML;
+                btn.classList.remove('btn-loading');
+            }
+        }
+
+        function showNotification(type, message) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 100px;
+                right: 20px;
+                padding: 16px 24px;
+                border-radius: 12px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+                z-index: 9999;
+                animation: slideIn 0.3s ease-out;
+                max-width: 400px;
+            `;
+
+            if (type === 'success') {
+                notification.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+                notification.style.color = 'white';
+                notification.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <i class="fas fa-check-circle" style="font-size: 24px;"></i>
+                        <div>
+                            <strong style="display: block; margin-bottom: 4px;">Berhasil!</strong>
+                            <span>${message}</span>
+                        </div>
+                    </div>
+                `;
+            } else {
+                notification.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
+                notification.style.color = 'white';
+                notification.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <i class="fas fa-exclamation-circle" style="font-size: 24px;"></i>
+                        <div>
+                            <strong style="display: block; margin-bottom: 4px;">Gagal!</strong>
+                            <span>${message}</span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease-out';
+                setTimeout(() => notification.remove(), 300);
+            }, 5000);
         }
 
         async function deleteBooking(id) {
             if (!confirm('Yakin ingin menghapus pemesanan ini? Data akan dihapus permanen.')) {
                 return;
             }
-            
+
             try {
                 const response = await fetch('api/delete_booking.php', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
                     body: 'id=' + id
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (data.success) {
-                    alert('Pemesanan berhasil dihapus');
+                    showNotification('success', 'Pemesanan berhasil dihapus');
                     loadBookings();
                 } else {
-                    alert(data.message || 'Gagal menghapus pemesanan');
+                    showNotification('error', data.message || 'Gagal menghapus pemesanan');
                 }
             } catch (error) {
-                alert('Terjadi kesalahan');
+                showNotification('error', 'Terjadi kesalahan');
             }
         }
 
         async function showDetail(id) {
             const modalContent = document.getElementById('modalContent');
-            modalContent.innerHTML = '<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-4xl text-primary"></i></div>';
-            document.getElementById('detailModal').classList.remove('hidden');
+            const modal = document.getElementById('detailModal');
             
+            modalContent.innerHTML = '<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-4xl text-blue-600"></i></div>';
+            modal.classList.remove('hidden');
+            
+            // Tambahkan class modal-open ke body untuk blur effect
+            document.body.classList.add('modal-open');
+
             try {
                 const response = await fetch('api/get_booking_detail.php?id=' + id);
                 const data = await response.json();
-                
+
                 if (data.success) {
                     displayDetail(data.data);
                 } else {
@@ -288,72 +673,139 @@
 
         function displayDetail(data) {
             const modalContent = document.getElementById('modalContent');
-            
-            const statusClass = {
-                'pending': 'bg-yellow-100 text-yellow-800',
-                'lunas': 'bg-green-100 text-green-800',
-                'batal': 'bg-red-100 text-red-800'
-            }[data.status] || 'bg-gray-100 text-gray-800';
-            
+
+            const statusMap = {
+                'pending': {
+                    class: 'status-pending',
+                    icon: 'fa-clock',
+                    text: 'PENDING'
+                },
+                'lunas': {
+                    class: 'status-lunas',
+                    icon: 'fa-check-circle',
+                    text: 'LUNAS'
+                },
+                'batal': {
+                    class: 'status-batal',
+                    icon: 'fa-times-circle',
+                    text: 'BATAL'
+                }
+            };
+            const status = statusMap[data.status] || statusMap['pending'];
+
             let penumpangHtml = '';
             data.penumpang.forEach((p, i) => {
                 penumpangHtml += `
-                    <div class="bg-gray-50 rounded-lg p-4 mb-3">
-                        <h5 class="font-bold text-gray-800 mb-2">Penumpang ${i + 1}</h5>
-                        <div class="grid grid-cols-2 gap-2 text-sm">
-                            <div><span class="text-gray-600">Nama:</span> <span class="font-semibold">${p.nama_lengkap}</span></div>
-                            <div><span class="text-gray-600">Jenis Kelamin:</span> ${p.jenis_kelamin}</div>
-                            <div><span class="text-gray-600">Tanggal Lahir:</span> ${p.tanggal_lahir}</div>
-                            <div><span class="text-gray-600">NIK:</span> ${p.nik || '-'}</div>
+                    <div class="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-5 mb-4">
+                        <h5 class="font-bold text-gray-800 mb-3 flex items-center">
+                            <span class="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center mr-3 text-sm">${i + 1}</span>
+                            Penumpang ${i + 1}
+                        </h5>
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <span class="text-gray-500 block mb-1">Nama Lengkap</span>
+                                <span class="font-semibold text-gray-800">${p.nama_lengkap}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500 block mb-1">Jenis Kelamin</span>
+                                <span class="font-semibold text-gray-800">${p.jenis_kelamin}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500 block mb-1">Tanggal Lahir</span>
+                                <span class="font-semibold text-gray-800">${p.tanggal_lahir}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500 block mb-1">NIK</span>
+                                <span class="font-semibold text-gray-800">${p.nik || '-'}</span>
+                            </div>
                         </div>
                     </div>
                 `;
             });
-            
+
             modalContent.innerHTML = `
                 <div class="space-y-6">
-                    <div class="bg-gradient-to-r from-primary to-secondary text-white rounded-xl p-6">
+                    <!-- Booking Code Card -->
+                    <div class="bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-2xl p-6">
                         <div class="flex justify-between items-start mb-4">
                             <div>
-                                <h4 class="text-sm opacity-90 mb-1">Kode Booking</h4>
-                                <p class="text-3xl font-bold">${data.kode_booking}</p>
+                                <p class="text-sm opacity-90 mb-2">Kode Booking</p>
+                                <p class="text-4xl font-bold">${data.kode_booking}</p>
                             </div>
-                            <span class="${statusClass} px-4 py-2 rounded-full text-sm font-semibold">
-                                ${data.status.toUpperCase()}
+                            <span class="status-badge ${status.class}">
+                                <i class="fas ${status.icon}"></i>
+                                ${status.text}
                             </span>
                         </div>
                         <p class="text-sm opacity-90">Tanggal Booking: ${data.created_at}</p>
                     </div>
                     
+                    <!-- Flight Info -->
                     <div>
-                        <h4 class="font-bold text-gray-800 mb-3 text-lg">Informasi Penerbangan</h4>
-                        <div class="bg-gray-50 rounded-lg p-4 space-y-2">
-                            <div class="flex justify-between"><span class="text-gray-600">Maskapai:</span> <span class="font-semibold">${data.maskapai}</span></div>
-                            <div class="flex justify-between"><span class="text-gray-600">Kode:</span> <span class="font-semibold">${data.kode_penerbangan}</span></div>
-                            <div class="flex justify-between"><span class="text-gray-600">Rute:</span> <span class="font-semibold">${data.asal} → ${data.tujuan}</span></div>
-                            <div class="flex justify-between"><span class="text-gray-600">Tanggal:</span> <span class="font-semibold">${data.tanggal}</span></div>
-                            <div class="flex justify-between"><span class="text-gray-600">Waktu:</span> <span class="font-semibold">${data.jam_berangkat} - ${data.jam_tiba}</span></div>
+                        <h4 class="font-bold text-gray-800 mb-4 text-lg flex items-center">
+                            <i class="fas fa-plane-departure text-blue-600 mr-3"></i>
+                            Informasi Penerbangan
+                        </h4>
+                        <div class="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-6 space-y-3">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Maskapai:</span>
+                                <span class="font-bold text-gray-800">${data.maskapai}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Kode Penerbangan:</span>
+                                <span class="font-bold text-gray-800">${data.kode_penerbangan}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Rute:</span>
+                                <span class="font-bold text-gray-800">${data.asal} → ${data.tujuan}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Tanggal:</span>
+                                <span class="font-bold text-gray-800">${data.tanggal}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Waktu:</span>
+                                <span class="font-bold text-gray-800">${data.jam_berangkat} - ${data.jam_tiba}</span>
+                            </div>
                         </div>
                     </div>
                     
+                    <!-- Pemesan Info -->
                     <div>
-                        <h4 class="font-bold text-gray-800 mb-3 text-lg">Informasi Pemesan</h4>
-                        <div class="bg-gray-50 rounded-lg p-4 space-y-2">
-                            <div class="flex justify-between"><span class="text-gray-600">Nama:</span> <span class="font-semibold">${data.nama_pemesan}</span></div>
-                            <div class="flex justify-between"><span class="text-gray-600">Email:</span> <span class="font-semibold">${data.email}</span></div>
-                            <div class="flex justify-between"><span class="text-gray-600">No. HP:</span> <span class="font-semibold">${data.no_hp}</span></div>
+                        <h4 class="font-bold text-gray-800 mb-4 text-lg flex items-center">
+                            <i class="fas fa-user-circle text-blue-600 mr-3"></i>
+                            Informasi Pemesan
+                        </h4>
+                        <div class="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-6 space-y-3">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Nama:</span>
+                                <span class="font-bold text-gray-800">${data.nama_pemesan}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Email:</span>
+                                <span class="font-bold text-gray-800">${data.email}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">No. HP:</span>
+                                <span class="font-bold text-gray-800">${data.no_hp}</span>
+                            </div>
                         </div>
                     </div>
                     
+                    <!-- Passengers -->
                     <div>
-                        <h4 class="font-bold text-gray-800 mb-3 text-lg">Data Penumpang</h4>
+                        <h4 class="font-bold text-gray-800 mb-4 text-lg flex items-center">
+                            <i class="fas fa-users text-blue-600 mr-3"></i>
+                            Data Penumpang
+                        </h4>
                         ${penumpangHtml}
                     </div>
                     
-                    <div class="border-t pt-4">
-                        <div class="flex justify-between items-center text-xl">
-                            <span class="font-bold text-gray-800">Total Pembayaran</span>
-                            <span class="font-bold text-accent">${formatRupiah(data.total_harga)}</span>
+                    <!-- Total -->
+                    <div class="border-t-2 border-gray-200 pt-6">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xl font-bold text-gray-800">Total Pembayaran</span>
+                            <span class="text-3xl font-bold text-blue-600">${formatRupiah(data.total_harga)}</span>
                         </div>
                     </div>
                 </div>
@@ -362,11 +814,40 @@
 
         function closeModal() {
             document.getElementById('detailModal').classList.add('hidden');
+            // Hapus class modal-open dari body untuk menghilangkan blur effect
+            document.body.classList.remove('modal-open');
         }
 
         function formatRupiah(angka) {
             return 'Rp ' + angka.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
         }
+
+        // Add animation styles
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from {
+                    transform: translateX(400px);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+            @keyframes slideOut {
+                from {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+                to {
+                    transform: translateX(400px);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
     </script>
 </body>
+
 </html>

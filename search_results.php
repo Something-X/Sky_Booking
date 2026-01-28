@@ -1,12 +1,22 @@
 <?php
+session_start();
 require_once 'config.php';
 $user = getUserData();
+
+// Cek apakah user login
+if (!$user) {
+    $showLoginModal = true;
+} else {
+    $showLoginModal = false;
+}
+// ...existing code...
 
 // Get search params
 $asal = $_GET['asal'] ?? '';
 $tujuan = $_GET['tujuan'] ?? '';
 $tanggal = $_GET['tanggal'] ?? '';
 $jumlah = (int)($_GET['jumlah'] ?? 1);
+$kelas = $_GET['kelas'] ?? 'Economy';
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -17,143 +27,283 @@ $jumlah = (int)($_GET['jumlah'] ?? 1);
     <title>Hasil Pencarian - SkyBooking</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#0066cc',
-                        secondary: '#004999',
-                        accent: '#ff6b35'
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        .flight-detail {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease-out;
-        }
-
-        .flight-detail.active {
-            max-height: 500px;
-        }
-
-        /* Modal Styles */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(4px);
-            z-index: 9999;
-            animation: fadeIn 0.3s ease-out;
-        }
-
-        .modal-overlay.active {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal-content {
-            background: white;
-            border-radius: 16px;
-            padding: 0;
-            max-width: 450px;
-            width: 90%;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            animation: slideUp 0.3s ease-out;
-            overflow: hidden;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-            to {
-                opacity: 1;
-            }
-        }
-
-        @keyframes slideUp {
-            from {
-                transform: translateY(50px);
-                opacity: 0;
-            }
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="assets/css/search_results.css">
 </head>
 
-<body class="bg-gray-50">
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        background: #f8fafc;
+    }
+
+    .flight-detail {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease-out;
+    }
+
+    .flight-detail.active {
+        max-height: 600px;
+    }
+
+    /* Modal Styles */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        z-index: 9999;
+        animation: fadeIn 0.3s ease-out;
+    }
+
+    .modal-overlay.active {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 20px;
+        padding: 0;
+        max-width: 450px;
+        width: 90%;
+        box-shadow: 0 20px 60px rgba(30, 58, 138, 0.3);
+        animation: slideUp 0.3s ease-out;
+        overflow: hidden;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    @keyframes slideUp {
+        from {
+            transform: translateY(50px);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .search-summary {
+        background: linear-gradient(135deg, #3b82f6 0%, #1e3a8a 100%);
+        color: white;
+        box-shadow: 0 4px 12px rgba(30, 58, 138, 0.2);
+    }
+
+    .filter-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s;
+    }
+
+    .flight-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s;
+        border: 2px solid transparent;
+    }
+
+    .flight-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px rgba(30, 58, 138, 0.15);
+        border-color: #3b82f6;
+    }
+
+    .airline-logo {
+        width: 56px;
+        height: 56px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .book-button {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 12px 28px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+
+    .book-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+    }
+
+    .filter-checkbox:checked {
+        background: #3b82f6;
+        border-color: #3b82f6;
+    }
+
+    .loading-spinner {
+        border: 4px solid #dbeafe;
+        border-top: 4px solid #3b82f6;
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% {
+            transform: rotate(0deg);
+        }
+
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+
+    .price-badge {
+        background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .detail-toggle {
+        color: #3b82f6;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .detail-toggle:hover {
+        color: #2563eb;
+    }
+
+    .result-header {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    select {
+        border: 2px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 10px 16px;
+        font-size: 14px;
+        transition: all 0.3s;
+    }
+
+    select:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .info-badge {
+        background: #eff6ff;
+        color: #1e3a8a;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+    }
+</style>
+
+<body data-logged-in="<?= $user ? 'true' : 'false' ?>">
     <?php include 'includes/navbar.php'; ?>
-    <?php include 'includes/modal.php'; ?>
 
     <!-- Modern Login Required Modal -->
-    <div id="loginModal" class="modal-overlay">
+    <div id="loginModal" class="modal-overlay<?= $showLoginModal ? ' active' : '' ?>">
         <div class="modal-content">
-            <!-- Header with Icon -->
-            <div class="bg-gradient-to-r from-primary to-secondary p-6 text-white text-center">
-                <div class="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="fas fa-lock text-3xl"></i>
+            <!-- Header with Gradient -->
+            <div class="p-8 text-center" style="background: linear-gradient(135deg, #3b82f6 0%, #1e3a8a 100%);">
+                <div class="w-20 h-20 bg-white bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-lock text-4xl text-white"></i>
                 </div>
-                <h3 class="text-2xl font-bold">Login Diperlukan</h3>
+                <h3 class="text-2xl font-bold text-white">Login Required</h3>
+                <p class="text-blue-100 mt-2">Please login to continue booking</p>
             </div>
 
             <!-- Body -->
-            <div class="p-6 text-center">
-                <p class="text-gray-600 text-lg mb-2">Anda harus login terlebih dahulu</p>
-                <p class="text-gray-500 text-sm">untuk memesan tiket penerbangan</p>
+            <div class="p-8 text-center">
+                <p class="text-gray-600 text-lg mb-2">You need to login first</p>
+                <p class="text-gray-500 text-sm">to book flight tickets</p>
             </div>
 
             <!-- Buttons -->
-            <div class="px-6 pb-6 flex gap-3">
-                <button onclick="closeLoginModal()" 
-                        class="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition duration-300">
-                    Batal
+            <div class="px-8 pb-8 flex gap-4">
+                <button onclick="closeLoginModal()"
+                    class="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition duration-300">
+                    Cancel
                 </button>
-                <button onclick="redirectToLogin()" 
-                        class="flex-1 px-6 py-3 bg-gradient-to-r from-primary to-secondary text-white font-bold rounded-lg hover:shadow-lg transform hover:scale-105 transition duration-300">
-                    <i class="fas fa-sign-in-alt mr-2"></i>Login Sekarang
+                <button onclick="redirectToLogin()"
+                    class="flex-1 px-6 py-3 text-white font-bold rounded-lg hover:shadow-lg transform hover:scale-105 transition duration-300"
+                    style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);">
+                    <i class="fas fa-sign-in-alt mr-2"></i>Login Now
                 </button>
             </div>
         </div>
     </div>
 
     <!-- Search Summary -->
-    <div class="bg-white shadow-md py-4">
+    <div class="search-summary py-6 mt-[40px]">
         <div class="container mx-auto px-4">
             <div class="flex flex-wrap items-center justify-between gap-4">
                 <div class="flex items-center gap-6 text-sm">
-                    <div>
-                        <span class="text-gray-500">Dari:</span>
-                        <span class="font-bold text-gray-800 ml-2"><?= htmlspecialchars($asal) ?></span>
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-plane-departure text-blue-200"></i>
+                        <span class="text-blue-100">From:</span>
+                        <span class="font-bold"><?= htmlspecialchars($asal) ?></span>
                     </div>
-                    <i class="fas fa-arrow-right text-primary"></i>
-                    <div>
-                        <span class="text-gray-500">Ke:</span>
-                        <span class="font-bold text-gray-800 ml-2"><?= htmlspecialchars($tujuan) ?></span>
+                    <i class="fas fa-arrow-right text-blue-200"></i>
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-plane-arrival text-blue-200"></i>
+                        <span class="text-blue-100">To:</span>
+                        <span class="font-bold"><?= htmlspecialchars($tujuan) ?></span>
                     </div>
-                    <div class="border-l pl-6">
-                        <span class="text-gray-500">Tanggal:</span>
-                        <span class="font-bold text-gray-800 ml-2"><?= date('d M Y', strtotime($tanggal)) ?></span>
+                    <div class="border-l border-blue-400 pl-6 flex items-center gap-2">
+                        <i class="fas fa-calendar text-blue-200"></i>
+                        <span class="text-blue-100">Date:</span>
+                        <span class="font-bold"><?= date('d M Y', strtotime($tanggal)) ?></span>
                     </div>
-                    <div>
-                        <span class="text-gray-500">Penumpang:</span>
-                        <span class="font-bold text-gray-800 ml-2"><?= $jumlah ?> orang</span>
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-users text-blue-200"></i>
+                        <span class="text-blue-100">Passengers:</span>
+                        <span class="font-bold"><?= $jumlah ?></span>
+                    </div>
+                    <div class="border-l border-blue-400 pl-6 flex items-center gap-2">
+                        <i class="fas fa-couch text-blue-200"></i>
+                        <span class="text-blue-100">Class:</span>
+                        <span class="font-bold"><?= htmlspecialchars($kelas) ?></span>
                     </div>
                 </div>
-                <button onclick="window.location.href='index.php'" class="text-primary hover:text-secondary font-semibold">
-                    <i class="fas fa-edit mr-2"></i>Ubah Pencarian
+                <button onclick="window.location.href='index.php'"
+                    class="bg-white text-blue-900 px-5 py-2.5 rounded-lg font-semibold hover:bg-blue-50 transition flex items-center gap-2">
+                    <i class="fas fa-edit"></i>
+                    Modify Search
                 </button>
             </div>
         </div>
@@ -163,58 +313,59 @@ $jumlah = (int)($_GET['jumlah'] ?? 1);
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
             <!-- Sidebar Filter -->
             <div class="lg:col-span-1">
-                <div class="bg-white rounded-xl shadow-md p-6 sticky top-4">
+                <div class="filter-card p-6 sticky top-4">
                     <div class="flex justify-between items-center mb-6">
-                        <h3 class="text-lg font-bold text-gray-800">
-                            <i class="fas fa-filter mr-2 text-primary"></i>Filter
+                        <h3 class="text-lg font-bold" style="color: #1e3a8a;">
+                            <i class="fas fa-filter mr-2" style="color: #3b82f6;"></i>Filters
                         </h3>
-                        <button id="resetFilter" class="text-sm text-primary hover:underline">Reset</button>
+                        <button id="resetFilter" class="text-sm font-semibold hover:underline" style="color: #3b82f6;">Reset All</button>
                     </div>
 
                     <!-- Airline Filter -->
                     <div class="mb-6">
-                        <h4 class="font-bold text-gray-800 mb-3 text-sm">Maskapai</h4>
-                        <div id="airlineFilters" class="space-y-2"></div>
+                        <h4 class="font-bold mb-3 text-sm" style="color: #1e3a8a;">Airlines</h4>
+                        <div id="airlineFilters" class="space-y-2.5"></div>
                     </div>
 
                     <!-- Price Range -->
                     <div class="mb-6">
-                        <h4 class="font-bold text-gray-800 mb-3 text-sm">Kisaran Harga</h4>
-                        <div class="space-y-2">
-                            <label class="flex items-center cursor-pointer text-sm">
-                                <input type="radio" name="priceRange" class="filter-price mr-2" value="0-1000000" checked>
-                                <span class="text-gray-700">< Rp 1 Juta</span>
+                        <h4 class="font-bold mb-3 text-sm" style="color: #1e3a8a;">Price Range</h4>
+                        <div class="space-y-2.5">
+                            <label class="flex items-center cursor-pointer text-sm group">
+                                <input type="radio" name="priceRange" class="filter-price filter-checkbox mr-3 w-4 h-4" value="0-1000000" checked>
+                                <span class="text-gray-700 group-hover:text-blue-600 transition">
+                                    < Rp 1 Million</span>
                             </label>
-                            <label class="flex items-center cursor-pointer text-sm">
-                                <input type="radio" name="priceRange" class="filter-price mr-2" value="1000000-2000000">
-                                <span class="text-gray-700">Rp 1-2 Juta</span>
+                            <label class="flex items-center cursor-pointer text-sm group">
+                                <input type="radio" name="priceRange" class="filter-price filter-checkbox mr-3 w-4 h-4" value="1000000-2000000">
+                                <span class="text-gray-700 group-hover:text-blue-600 transition">Rp 1-2 Million</span>
                             </label>
-                            <label class="flex items-center cursor-pointer text-sm">
-                                <input type="radio" name="priceRange" class="filter-price mr-2" value="2000000-99999999">
-                                <span class="text-gray-700">> Rp 2 Juta</span>
+                            <label class="flex items-center cursor-pointer text-sm group">
+                                <input type="radio" name="priceRange" class="filter-price filter-checkbox mr-3 w-4 h-4" value="2000000-99999999">
+                                <span class="text-gray-700 group-hover:text-blue-600 transition">> Rp 2 Million</span>
                             </label>
                         </div>
                     </div>
 
                     <!-- Time Filter -->
                     <div class="mb-6">
-                        <h4 class="font-bold text-gray-800 mb-3 text-sm">Waktu Keberangkatan</h4>
-                        <div class="space-y-2">
-                            <label class="flex items-center cursor-pointer text-sm">
-                                <input type="checkbox" class="filter-time mr-2" value="00:00-06:00">
-                                <span class="text-gray-700">🌙 Dini Hari 00:00-06:00</span>
+                        <h4 class="font-bold mb-3 text-sm" style="color: #1e3a8a;">Departure Time</h4>
+                        <div class="space-y-2.5">
+                            <label class="flex items-center cursor-pointer text-sm group">
+                                <input type="checkbox" class="filter-time filter-checkbox mr-3 w-4 h-4" value="00:00-06:00">
+                                <span class="text-gray-700 group-hover:text-blue-600 transition">🌙 Night 00:00-06:00</span>
                             </label>
-                            <label class="flex items-center cursor-pointer text-sm">
-                                <input type="checkbox" class="filter-time mr-2" value="06:00-12:00">
-                                <span class="text-gray-700">🌅 Pagi 06:00-12:00</span>
+                            <label class="flex items-center cursor-pointer text-sm group">
+                                <input type="checkbox" class="filter-time filter-checkbox mr-3 w-4 h-4" value="06:00-12:00">
+                                <span class="text-gray-700 group-hover:text-blue-600 transition">🌅 Morning 06:00-12:00</span>
                             </label>
-                            <label class="flex items-center cursor-pointer text-sm">
-                                <input type="checkbox" class="filter-time mr-2" value="12:00-18:00">
-                                <span class="text-gray-700">☀️ Siang 12:00-18:00</span>
+                            <label class="flex items-center cursor-pointer text-sm group">
+                                <input type="checkbox" class="filter-time filter-checkbox mr-3 w-4 h-4" value="12:00-18:00">
+                                <span class="text-gray-700 group-hover:text-blue-600 transition">☀️ Afternoon 12:00-18:00</span>
                             </label>
-                            <label class="flex items-center cursor-pointer text-sm">
-                                <input type="checkbox" class="filter-time mr-2" value="18:00-24:00">
-                                <span class="text-gray-700">🌃 Malam 18:00-24:00</span>
+                            <label class="flex items-center cursor-pointer text-sm group">
+                                <input type="checkbox" class="filter-time filter-checkbox mr-3 w-4 h-4" value="18:00-24:00">
+                                <span class="text-gray-700 group-hover:text-blue-600 transition">🌃 Evening 18:00-24:00</span>
                             </label>
                         </div>
                     </div>
@@ -224,27 +375,32 @@ $jumlah = (int)($_GET['jumlah'] ?? 1);
             <!-- Flight Results -->
             <div class="lg:col-span-3">
                 <!-- Header -->
-                <div class="bg-white rounded-xl shadow-md p-4 mb-4">
+                <div class="result-header p-5 mb-6">
                     <div class="flex flex-wrap justify-between items-center gap-4">
                         <div>
-                            <h2 class="text-xl font-bold text-gray-800">
-                                <i class="fas fa-plane text-primary mr-2"></i>
-                                <span id="resultCount">0</span> Penerbangan Tersedia
+                            <h2 class="text-2xl font-bold" style="color: #1e3a8a;">
+                                <i class="fas fa-plane mr-2" style="color: #3b82f6;"></i>
+                                <span id="resultCount">0</span> Flights Available
                             </h2>
+                            <p class="text-gray-500 text-sm mt-1">Best prices for your journey</p>
                         </div>
-                        <select id="sortSelect" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary text-sm">
-                            <option value="price-asc">Harga Terendah</option>
-                            <option value="price-desc">Harga Tertinggi</option>
-                            <option value="time-asc">Keberangkatan Paling Awal</option>
-                            <option value="time-desc">Keberangkatan Paling Akhir</option>
-                        </select>
+                        <div>
+                            <label class="text-sm font-medium text-gray-600 block mb-2">Sort by:</label>
+                            <select id="sortSelect" class="font-medium" style="color: #1e3a8a;">
+                                <option value="price-asc">Lowest Price</option>
+                                <option value="price-desc">Highest Price</option>
+                                <option value="time-asc">Earliest Departure</option>
+                                <option value="time-desc">Latest Departure</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Loading -->
-                <div id="loadingSpinner" class="text-center py-12">
-                    <div class="inline-block animate-spin rounded-full h-16 w-16 border-b-4 border-primary"></div>
-                    <p class="mt-4 text-gray-600 font-semibold">Mencari penerbangan terbaik...</p>
+                <div id="loadingSpinner" class="text-center py-16">
+                    <div class="loading-spinner mx-auto mb-4"></div>
+                    <p class="text-gray-600 font-semibold">Finding best flights for you...</p>
+                    <p class="text-gray-500 text-sm mt-2">Please wait a moment</p>
                 </div>
 
                 <!-- Results Container -->
@@ -254,371 +410,9 @@ $jumlah = (int)($_GET['jumlah'] ?? 1);
     </div>
 
     <script>
-        let allFlights = [];
-        let pendingBookingData = null;
         const jumlah = <?= $jumlah ?>;
-
-        // Modal Functions
-        function showLoginModal(flightId, jumlah) {
-            pendingBookingData = { flightId, jumlah };
-            document.getElementById('loginModal').classList.add('active');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeLoginModal() {
-            document.getElementById('loginModal').classList.remove('active');
-            document.body.style.overflow = 'auto';
-            pendingBookingData = null;
-        }
-
-        function redirectToLogin() {
-            if (pendingBookingData) {
-                const { flightId, jumlah } = pendingBookingData;
-                window.location.href = `login.php?redirect=${encodeURIComponent('pesan.php?id=' + flightId + '&jumlah=' + jumlah)}`;
-            }
-        }
-
-        // Close modal when clicking outside
-        document.getElementById('loginModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeLoginModal();
-            }
-        });
-
-        // Close modal with Escape key
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                closeLoginModal();
-            }
-        });
-
-        // Load flights on page load
-        window.addEventListener('DOMContentLoaded', function() {
-            searchFlights();
-        });
-
-        async function searchFlights() {
-            const formData = new FormData();
-            formData.append('asal', '<?= $asal ?>');
-            formData.append('tujuan', '<?= $tujuan ?>');
-            formData.append('tanggal', '<?= $tanggal ?>');
-
-            try {
-                const response = await fetch('api/search_flights.php', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const data = await response.json();
-                document.getElementById('loadingSpinner').classList.add('hidden');
-
-                if (data.success && data.data.length > 0) {
-                    allFlights = data.data;
-                    populateAirlineFilters(allFlights);
-                    applyFilters();
-                } else {
-                    showNoResults();
-                }
-            } catch (error) {
-                document.getElementById('loadingSpinner').classList.add('hidden');
-                showError();
-            }
-        }
-
-        function populateAirlineFilters(flights) {
-            const airlines = [...new Set(flights.map(f => f.maskapai))];
-            const container = document.getElementById('airlineFilters');
-            container.innerHTML = airlines.map(airline => `
-                <label class="flex items-center cursor-pointer text-sm">
-                    <input type="checkbox" class="filter-airline mr-2" value="${airline}" checked>
-                    <span class="text-gray-700">${airline}</span>
-                </label>
-            `).join('');
-
-            document.querySelectorAll('.filter-airline').forEach(el => {
-                el.addEventListener('change', applyFilters);
-            });
-        }
-
-        function applyFilters() {
-            const selectedAirlines = Array.from(document.querySelectorAll('.filter-airline:checked')).map(el => el.value);
-            const priceRange = document.querySelector('.filter-price:checked')?.value;
-            let minPrice = 0,
-                maxPrice = 99999999;
-            if (priceRange) {
-                [minPrice, maxPrice] = priceRange.split('-').map(Number);
-            }
-
-            const selectedTimes = Array.from(document.querySelectorAll('.filter-time:checked')).map(el => el.value);
-
-            let filtered = allFlights.filter(flight => {
-                if (!selectedAirlines.includes(flight.maskapai)) return false;
-
-                const price = flight.harga * jumlah;
-                if (price < minPrice || price > maxPrice) return false;
-
-                if (selectedTimes.length > 0) {
-                    const time = flight.jam_berangkat;
-                    const [hours] = time.split(':').map(Number);
-                    const timeInMinutes = hours * 60;
-
-                    const matchesTime = selectedTimes.some(range => {
-                        const [start, end] = range.split('-').map(t => {
-                            const [h, m] = t.split(':').map(Number);
-                            return h * 60 + (m || 0);
-                        });
-                        return timeInMinutes >= start && timeInMinutes < end;
-                    });
-
-                    if (!matchesTime) return false;
-                }
-
-                return true;
-            });
-
-            displayResults(filtered);
-        }
-
-        function displayResults(flights) {
-            const container = document.getElementById('resultsContainer');
-            document.getElementById('resultCount').textContent = flights.length;
-
-            if (flights.length === 0) {
-                container.innerHTML = `
-                    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-6 rounded-lg">
-                        <div class="flex items-center">
-                            <i class="fas fa-filter text-yellow-400 text-3xl mr-4"></i>
-                            <div>
-                                <p class="font-bold text-yellow-700 text-lg">Tidak ada hasil</p>
-                                <p class="text-yellow-600 text-sm mt-1">Coba ubah filter atau kriteria pencarian Anda</p>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                return;
-            }
-
-            let html = '';
-            flights.forEach((flight, index) => {
-                const totalHarga = flight.harga * jumlah;
-                html += createFlightCard(flight, totalHarga, index);
-            });
-
-            container.innerHTML = html;
-
-            // Add toggle listeners
-            document.querySelectorAll('.toggle-detail').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const detailId = this.dataset.detail;
-                    const detail = document.getElementById(detailId);
-                    const icon = this.querySelector('.toggle-icon');
-
-                    detail.classList.toggle('active');
-                    icon.classList.toggle('fa-chevron-down');
-                    icon.classList.toggle('fa-chevron-up');
-                });
-            });
-        }
-
-        function createFlightCard(flight, totalHarga, index) {
-            return `
-                <div class="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 mb-4 overflow-hidden border border-gray-200">
-                    <!-- Main Content -->
-                    <div class="p-6">
-                        <div class="flex flex-wrap items-center justify-between gap-4">
-                            <!-- Airline Info -->
-                            <div class="flex-shrink-0">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                                        <i class="fas fa-plane text-primary text-xl"></i>
-                                    </div>
-                                    <div>
-                                        <div class="font-bold text-gray-800">${flight.maskapai}</div>
-                                        <div class="text-xs text-gray-500">${flight.kode_penerbangan}</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Flight Time -->
-                            <div class="flex items-center gap-6 flex-1">
-                                <div class="text-center">
-                                    <div class="text-2xl font-bold text-gray-800">${flight.jam_berangkat}</div>
-                                    <div class="text-sm text-gray-600">${flight.asal.split('(')[1]?.replace(')', '') || flight.asal}</div>
-                                </div>
-                                
-                                <div class="flex-1 relative">
-                                    <div class="border-t-2 border-gray-300"></div>
-                                    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white px-2">
-                                        <i class="fas fa-plane text-primary"></i>
-                                    </div>
-                                    <div class="text-center text-xs text-gray-500 mt-8">Langsung</div>
-                                </div>
-                                
-                                <div class="text-center">
-                                    <div class="text-2xl font-bold text-gray-800">${flight.jam_tiba}</div>
-                                    <div class="text-sm text-gray-600">${flight.tujuan.split('(')[1]?.replace(')', '') || flight.tujuan}</div>
-                                </div>
-                            </div>
-
-                            <!-- Price & Book -->
-                            <div class="text-right flex-shrink-0">
-                                <div class="mb-1">
-                                    <span class="text-xs text-gray-500">Mulai dari</span>
-                                </div>
-                                <div class="text-2xl font-bold text-accent mb-1">${formatRupiah(totalHarga)}</div>
-                                <div class="text-xs text-gray-500 mb-3">/per ${jumlah} orang</div>
-                                <button onclick="bookFlight(${flight.id}, ${jumlah})" 
-                                        class="w-full bg-primary hover:bg-secondary text-white font-bold py-2 px-6 rounded-lg transition duration-300">
-                                    Pesan
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Detail Toggle Button -->
-                        <button class="toggle-detail mt-4 w-full text-primary hover:text-secondary font-semibold text-sm flex items-center justify-center gap-2" data-detail="detail-${index}">
-                            <span>Flight Details</span>
-                            <i class="fas fa-chevron-down toggle-icon"></i>
-                        </button>
-                    </div>
-
-                    <!-- Flight Details (Collapsible) -->
-                    <div id="detail-${index}" class="flight-detail bg-gray-50 border-t border-gray-200">
-                        <div class="p-6">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <h5 class="font-bold text-gray-800 mb-3 flex items-center">
-                                        <i class="fas fa-plane-departure text-primary mr-2"></i>
-                                        Keberangkatan
-                                    </h5>
-                                    <div class="space-y-2 text-sm">
-                                        <div class="flex justify-between">
-                                            <span class="text-gray-600">Bandara:</span>
-                                            <span class="font-semibold">${flight.asal}</span>
-                                        </div>
-                                        <div class="flex justify-between">
-                                            <span class="text-gray-600">Waktu:</span>
-                                            <span class="font-semibold">${flight.jam_berangkat}</span>
-                                        </div>
-                                        <div class="flex justify-between">
-                                            <span class="text-gray-600">Tanggal:</span>
-                                            <span class="font-semibold"><?= date('d M Y', strtotime($tanggal)) ?></span>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div>
-                                    <h5 class="font-bold text-gray-800 mb-3 flex items-center">
-                                        <i class="fas fa-plane-arrival text-primary mr-2"></i>
-                                        Kedatangan
-                                    </h5>
-                                    <div class="space-y-2 text-sm">
-                                        <div class="flex justify-between">
-                                            <span class="text-gray-600">Bandara:</span>
-                                            <span class="font-semibold">${flight.tujuan}</span>
-                                        </div>
-                                        <div class="flex justify-between">
-                                            <span class="text-gray-600">Waktu:</span>
-                                            <span class="font-semibold">${flight.jam_tiba}</span>
-                                        </div>
-                                        <div class="flex justify-between">
-                                            <span class="text-gray-600">Kursi Tersedia:</span>
-                                            <span class="font-semibold text-green-600">${flight.tersedia} kursi</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="mt-4 p-4 bg-blue-50 rounded-lg">
-                                <div class="flex items-start gap-2 text-sm text-gray-700">
-                                    <i class="fas fa-info-circle text-primary mt-0.5"></i>
-                                    <div>
-                                        <p class="font-semibold mb-1">Informasi Tambahan:</p>
-                                        <ul class="list-disc list-inside space-y-1 text-xs">
-                                            <li>Bagasi kabin 7kg</li>
-                                            <li>Bagasi check-in 20kg</li>
-                                            <li>Refundable sesuai ketentuan maskapai</li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        function showNoResults() {
-            document.getElementById('resultsContainer').innerHTML = `
-                <div class="bg-yellow-50 border-l-4 border-yellow-400 p-8 rounded-lg text-center">
-                    <i class="fas fa-plane-slash text-yellow-400 text-6xl mb-4"></i>
-                    <h3 class="text-xl font-bold text-yellow-700 mb-2">Tidak Ada Penerbangan</h3>
-                    <p class="text-yellow-600 mb-4">Maaf, tidak ada penerbangan yang sesuai dengan pencarian Anda</p>
-                    <button onclick="window.location.href='index.php'" class="bg-primary hover:bg-secondary text-white font-bold py-2 px-6 rounded-lg">
-                        Ubah Pencarian
-                    </button>
-                </div>
-            `;
-        }
-
-        function showError() {
-            document.getElementById('resultsContainer').innerHTML = `
-                <div class="bg-red-50 border-l-4 border-red-400 p-8 rounded-lg text-center">
-                    <i class="fas fa-exclamation-triangle text-red-400 text-6xl mb-4"></i>
-                    <h3 class="text-xl font-bold text-red-700 mb-2">Terjadi Kesalahan</h3>
-                    <p class="text-red-600">Silakan coba lagi atau hubungi customer service</p>
-                </div>
-            `;
-        }
-
-        // Filter event listeners
-        document.querySelectorAll('.filter-price, .filter-time').forEach(el => {
-            el.addEventListener('change', applyFilters);
-        });
-
-        // Reset filter
-        document.getElementById('resetFilter').addEventListener('click', function() {
-            document.querySelectorAll('.filter-airline').forEach(el => el.checked = true);
-            document.querySelectorAll('.filter-price')[0].checked = true;
-            document.querySelectorAll('.filter-time').forEach(el => el.checked = false);
-            applyFilters();
-        });
-
-        // Sort handler
-        document.getElementById('sortSelect').addEventListener('change', function() {
-            const value = this.value;
-            const sorted = [...allFlights];
-
-            switch (value) {
-                case 'price-asc':
-                    sorted.sort((a, b) => a.harga - b.harga);
-                    break;
-                case 'price-desc':
-                    sorted.sort((a, b) => b.harga - a.harga);
-                    break;
-                case 'time-asc':
-                    sorted.sort((a, b) => a.jam_berangkat.localeCompare(b.jam_berangkat));
-                    break;
-                case 'time-desc':
-                    sorted.sort((a, b) => b.jam_berangkat.localeCompare(a.jam_berangkat));
-                    break;
-            }
-
-            allFlights = sorted;
-            applyFilters();
-        });
-
-        function formatRupiah(angka) {
-            return 'Rp ' + angka.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-        }
-
-        function bookFlight(flightId, jumlah) {
-            <?php if (isLoggedIn()): ?>
-                window.location.href = `pesan.php?id=${flightId}&jumlah=${jumlah}`;
-            <?php else: ?>
-                showLoginModal(flightId, jumlah);
-            <?php endif; ?>
-        }
     </script>
+    <script src="assets/js/search_results.js"></script>
 </body>
 
 </html>

@@ -4,22 +4,55 @@ require_once 'config.php';
 // Require login
 requireLogin();
 
-if (!isset($_GET['id']) || !isset($_GET['jumlah'])) {
-    redirect('index.php');
+// Check if round-trip or one-way
+$isRoundTrip = isset($_GET['departure_id']) && isset($_GET['return_id']);
+
+if ($isRoundTrip) {
+    // Round-trip booking
+    if (!isset($_GET['departure_id']) || !isset($_GET['return_id']) || !isset($_GET['jumlah'])) {
+        redirect('index.php');
+    }
+    
+    $departure_id = (int)$_GET['departure_id'];
+    $return_id = (int)$_GET['return_id'];
+    $jumlah_penumpang = (int)$_GET['jumlah'];
+    
+    // Get departure flight
+    $sql_departure = "SELECT * FROM penerbangan WHERE id = $departure_id AND status = 'aktif'";
+    $result_departure = $conn->query($sql_departure);
+    
+    // Get return flight
+    $sql_return = "SELECT * FROM penerbangan WHERE id = $return_id AND status = 'aktif'";
+    $result_return = $conn->query($sql_return);
+    
+    if (!$result_departure || $result_departure->num_rows === 0 || 
+        !$result_return || $result_return->num_rows === 0) {
+        redirect('index.php');
+    }
+    
+    $departure_flight = $result_departure->fetch_assoc();
+    $return_flight = $result_return->fetch_assoc();
+    $total_harga = ($departure_flight['harga'] + $return_flight['harga']) * $jumlah_penumpang;
+    
+} else {
+    // One-way booking
+    if (!isset($_GET['id']) || !isset($_GET['jumlah'])) {
+        redirect('index.php');
+    }
+
+    $id_penerbangan = (int)$_GET['id'];
+    $jumlah_penumpang = (int)$_GET['jumlah'];
+
+    $sql = "SELECT * FROM penerbangan WHERE id = $id_penerbangan AND status = 'aktif'";
+    $result = $conn->query($sql);
+
+    if (!$result || $result->num_rows === 0) {
+        redirect('index.php');
+    }
+
+    $flight = $result->fetch_assoc();
+    $total_harga = $flight['harga'] * $jumlah_penumpang;
 }
-
-$id_penerbangan = (int)$_GET['id'];
-$jumlah_penumpang = (int)$_GET['jumlah'];
-
-$sql = "SELECT * FROM penerbangan WHERE id = $id_penerbangan AND status = 'aktif'";
-$result = $conn->query($sql);
-
-if (!$result || $result->num_rows === 0) {
-    redirect('index.php');
-}
-
-$flight = $result->fetch_assoc();
-$total_harga = $flight['harga'] * $jumlah_penumpang;
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -75,6 +108,16 @@ $total_harga = $flight['harga'] * $jumlah_penumpang;
                 </div>
             </div>
 
+            <!-- Round Trip Badge -->
+            <?php if ($isRoundTrip): ?>
+            <div class="mb-6 text-center">
+                <span class="inline-flex items-center px-6 py-3 rounded-full text-white font-bold" style="background: linear-gradient(135deg, #3b82f6 0%, #1e3a8a 100%);">
+                    <i class="fas fa-exchange-alt mr-2"></i>
+                    Round-Trip Booking
+                </span>
+            </div>
+            <?php endif; ?>
+
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <!-- Form Pemesanan -->
                 <div class="lg:col-span-2">
@@ -85,7 +128,13 @@ $total_harga = $flight['harga'] * $jumlah_penumpang;
                         </h2>
                         
                         <form id="bookingForm">
-                            <input type="hidden" name="id_penerbangan" value="<?= $id_penerbangan ?>">
+                            <?php if ($isRoundTrip): ?>
+                                <input type="hidden" name="departure_id" value="<?= $departure_id ?>">
+                                <input type="hidden" name="return_id" value="<?= $return_id ?>">
+                                <input type="hidden" name="is_roundtrip" value="1">
+                            <?php else: ?>
+                                <input type="hidden" name="id_penerbangan" value="<?= $id_penerbangan ?>">
+                            <?php endif; ?>
                             <input type="hidden" name="jumlah_penumpang" value="<?= $jumlah_penumpang ?>">
                             
                             <div class="space-y-4 mb-6">
@@ -179,55 +228,160 @@ $total_harga = $flight['harga'] * $jumlah_penumpang;
                     <div class="bg-white rounded-xl shadow-lg p-6 sticky top-4">
                         <h3 class="text-xl font-bold text-gray-800 mb-4">Ringkasan Pemesanan</h3>
                         
-                        <div class="bg-gradient-to-r from-primary to-secondary text-white rounded-lg p-4 mb-6">
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-sm opacity-90">Maskapai</span>
-                                <span class="font-bold"><?= $flight['maskapai'] ?></span>
-                            </div>
-                            <div class="flex items-center justify-between">
-                                <span class="text-sm opacity-90">Kode</span>
-                                <span class="font-bold"><?= $flight['kode_penerbangan'] ?></span>
-                            </div>
-                        </div>
-
-                        <div class="space-y-3 mb-6">
-                            <div class="flex items-start">
-                                <i class="fas fa-calendar text-primary mt-1 mr-3"></i>
-                                <div class="flex-1">
-                                    <div class="text-sm text-gray-500">Tanggal</div>
-                                    <div class="font-semibold"><?= formatTanggal($flight['tanggal']) ?></div>
+                        <?php if ($isRoundTrip): ?>
+                            <!-- Departure Flight -->
+                            <div class="mb-6">
+                                <div class="flex items-center justify-between mb-3">
+                                    <h4 class="font-bold text-gray-700 flex items-center">
+                                        <i class="fas fa-plane-departure mr-2 text-primary"></i>
+                                        Penerbangan Berangkat
+                                    </h4>
                                 </div>
-                            </div>
-                            
-                            <div class="flex items-start">
-                                <i class="fas fa-map-marker-alt text-primary mt-1 mr-3"></i>
-                                <div class="flex-1">
-                                    <div class="text-sm text-gray-500">Rute</div>
-                                    <div class="font-semibold"><?= $flight['asal'] ?></div>
-                                    <i class="fas fa-arrow-down text-gray-400 my-1"></i>
-                                    <div class="font-semibold"><?= $flight['tujuan'] ?></div>
+                                <div class="bg-gradient-to-r from-primary to-secondary text-white rounded-lg p-4 mb-3">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-sm opacity-90">Maskapai</span>
+                                        <span class="font-bold"><?= $departure_flight['maskapai'] ?></span>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm opacity-90">Kode</span>
+                                        <span class="font-bold"><?= $departure_flight['kode_penerbangan'] ?></span>
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div class="flex items-start">
-                                <i class="fas fa-clock text-primary mt-1 mr-3"></i>
-                                <div class="flex-1">
-                                    <div class="text-sm text-gray-500">Waktu</div>
-                                    <div class="font-semibold">
-                                        <?= date('H:i', strtotime($flight['jam_berangkat'])) ?> - 
-                                        <?= date('H:i', strtotime($flight['jam_tiba'])) ?>
+                                <div class="space-y-2 text-sm">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Tanggal</span>
+                                        <span class="font-semibold"><?= formatTanggal($departure_flight['tanggal']) ?></span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Rute</span>
+                                        <span class="font-semibold"><?= $departure_flight['asal'] ?> → <?= $departure_flight['tujuan'] ?></span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Waktu</span>
+                                        <span class="font-semibold">
+                                            <?= date('H:i', strtotime($departure_flight['jam_berangkat'])) ?> - 
+                                            <?= date('H:i', strtotime($departure_flight['jam_tiba'])) ?>
+                                        </span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Harga</span>
+                                        <span class="font-semibold"><?= formatRupiah($departure_flight['harga']) ?></span>
                                     </div>
                                 </div>
                             </div>
-                        </div>
+
+                            <hr class="my-4">
+
+                            <!-- Return Flight -->
+                            <div class="mb-6">
+                                <div class="flex items-center justify-between mb-3">
+                                    <h4 class="font-bold text-gray-700 flex items-center">
+                                        <i class="fas fa-plane-arrival mr-2 text-primary"></i>
+                                        Penerbangan Kembali
+                                    </h4>
+                                </div>
+                                <div class="bg-gradient-to-r from-primary to-secondary text-white rounded-lg p-4 mb-3">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-sm opacity-90">Maskapai</span>
+                                        <span class="font-bold"><?= $return_flight['maskapai'] ?></span>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm opacity-90">Kode</span>
+                                        <span class="font-bold"><?= $return_flight['kode_penerbangan'] ?></span>
+                                    </div>
+                                </div>
+
+                                <div class="space-y-2 text-sm">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Tanggal</span>
+                                        <span class="font-semibold"><?= formatTanggal($return_flight['tanggal']) ?></span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Rute</span>
+                                        <span class="font-semibold"><?= $return_flight['asal'] ?> → <?= $return_flight['tujuan'] ?></span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Waktu</span>
+                                        <span class="font-semibold">
+                                            <?= date('H:i', strtotime($return_flight['jam_berangkat'])) ?> - 
+                                            <?= date('H:i', strtotime($return_flight['jam_tiba'])) ?>
+                                        </span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Harga</span>
+                                        <span class="font-semibold"><?= formatRupiah($return_flight['harga']) ?></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                        <?php else: ?>
+                            <!-- One-Way Flight -->
+                            <div class="bg-gradient-to-r from-primary to-secondary text-white rounded-lg p-4 mb-6">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-sm opacity-90">Maskapai</span>
+                                    <span class="font-bold"><?= $flight['maskapai'] ?></span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm opacity-90">Kode</span>
+                                    <span class="font-bold"><?= $flight['kode_penerbangan'] ?></span>
+                                </div>
+                            </div>
+
+                            <div class="space-y-3 mb-6">
+                                <div class="flex items-start">
+                                    <i class="fas fa-calendar text-primary mt-1 mr-3"></i>
+                                    <div class="flex-1">
+                                        <div class="text-sm text-gray-500">Tanggal</div>
+                                        <div class="font-semibold"><?= formatTanggal($flight['tanggal']) ?></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-start">
+                                    <i class="fas fa-map-marker-alt text-primary mt-1 mr-3"></i>
+                                    <div class="flex-1">
+                                        <div class="text-sm text-gray-500">Rute</div>
+                                        <div class="font-semibold"><?= $flight['asal'] ?></div>
+                                        <i class="fas fa-arrow-down text-gray-400 my-1"></i>
+                                        <div class="font-semibold"><?= $flight['tujuan'] ?></div>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-start">
+                                    <i class="fas fa-clock text-primary mt-1 mr-3"></i>
+                                    <div class="flex-1">
+                                        <div class="text-sm text-gray-500">Waktu</div>
+                                        <div class="font-semibold">
+                                            <?= date('H:i', strtotime($flight['jam_berangkat'])) ?> - 
+                                            <?= date('H:i', strtotime($flight['jam_tiba'])) ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endif; ?>
 
                         <hr class="my-6">
 
                         <div class="space-y-3">
-                            <div class="flex justify-between text-gray-600">
-                                <span>Harga per orang</span>
-                                <span><?= formatRupiah($flight['harga']) ?></span>
-                            </div>
+                            <?php if ($isRoundTrip): ?>
+                                <div class="flex justify-between text-gray-600">
+                                    <span>Harga Berangkat</span>
+                                    <span><?= formatRupiah($departure_flight['harga']) ?></span>
+                                </div>
+                                <div class="flex justify-between text-gray-600">
+                                    <span>Harga Kembali</span>
+                                    <span><?= formatRupiah($return_flight['harga']) ?></span>
+                                </div>
+                                <div class="flex justify-between text-gray-600">
+                                    <span>Subtotal per orang</span>
+                                    <span><?= formatRupiah($departure_flight['harga'] + $return_flight['harga']) ?></span>
+                                </div>
+                            <?php else: ?>
+                                <div class="flex justify-between text-gray-600">
+                                    <span>Harga per orang</span>
+                                    <span><?= formatRupiah($flight['harga']) ?></span>
+                                </div>
+                            <?php endif; ?>
                             <div class="flex justify-between text-gray-600">
                                 <span>Jumlah penumpang</span>
                                 <span>× <?= $jumlah_penumpang ?></span>
@@ -239,29 +393,6 @@ $total_harga = $flight['harga'] * $jumlah_penumpang;
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal Konfirmasi -->
-    <div id="confirmModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl max-w-md w-full p-8 transform transition-all">
-            <div class="text-center">
-                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="fas fa-check text-3xl text-green-500"></i>
-                </div>
-                <h3 class="text-2xl font-bold text-gray-800 mb-2">Pemesanan Berhasil!</h3>
-                <p class="text-gray-600 mb-2">Kode Booking Anda:</p>
-                <p id="kodeBooking" class="text-3xl font-bold text-primary mb-6"></p>
-                <p class="text-sm text-gray-500 mb-6">E-ticket telah dikirim ke email Anda</p>
-                <div class="space-y-3">
-                    <a href="riwayat.php" class="block w-full bg-primary hover:bg-secondary text-white font-bold py-3 rounded-lg transition duration-300">
-                        Lihat Riwayat Pemesanan
-                    </a>
-                    <a href="index.php" class="block w-full border-2 border-primary text-primary hover:bg-primary hover:text-white font-bold py-3 rounded-lg transition duration-300">
-                        Kembali ke Beranda
-                    </a>
                 </div>
             </div>
         </div>

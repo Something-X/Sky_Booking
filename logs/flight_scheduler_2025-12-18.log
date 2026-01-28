@@ -1,0 +1,56 @@
+[]
+[]
+[]
+[
+    {
+        "level": "warning",
+        "message": "Skipped GA-101 - schedule conflict",
+        "time": "2025-12-18 15:50:48"
+    },
+    {
+        "level": "info",
+        "message": "Flight JT-202 sudah ada return flight",
+        "time": "2025-12-18 15:50:48"
+    },
+    {
+        "level": "success",
+        "message": "Generated: QG-303-R - Surabaya \u2192 Bali on 2025-12-18 at 22:12:00",
+        "time": "2025-12-18 15:50:48"
+    }
+]
+[
+    {
+        "level": "warning",
+        "message": "Skipped GA-101 - schedule conflict",
+        "time": "2025-12-18 15:50:51"
+    },
+    {
+        "level": "info",
+        "message": "Flight JT-202 sudah ada return flight",
+        "time": "2025-12-18 15:50:51"
+    }
+]
+[
+    {
+        "level": "warning",
+        "message": "Skipped GA-101 - schedule conflict",
+        "time": "2025-12-18 15:51:32"
+    },
+    {
+        "level": "info",
+        "message": "Flight JT-202 sudah ada return flight",
+        "time": "2025-12-18 15:51:32"
+    }
+]
+[
+    {
+        "level": "warning",
+        "message": "Skipped GA-101 - schedule conflict",
+        "time": "2025-12-18 15:51:35"
+    },
+    {
+        "level": "info",
+        "message": "Flight JT-202 sudah ada return flight",
+        "time": "2025-12-18 15:51:35"
+    }
+]

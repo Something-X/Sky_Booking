@@ -7,20 +7,98 @@ if (!isset($_GET['booking'])) {
 
 $kode_booking = $conn->real_escape_string($_GET['booking']);
 
-// Ambil data pemesanan
-$sql = "SELECT p.*, pe.maskapai, pe.kode_penerbangan, pe.asal, pe.tujuan,
-        DATE_FORMAT(pe.tanggal, '%d %M %Y') as tanggal
-        FROM pemesanan p
-        JOIN penerbangan pe ON p.id_penerbangan = pe.id
-        WHERE p.kode_booking = '$kode_booking' AND p.status = 'pending'";
+// ========== Check booking type ==========
+$sql_check = "SELECT tipe_booking, status FROM pemesanan WHERE kode_booking = ?";
+$stmt_check = $conn->prepare($sql_check);
+$stmt_check->bind_param("s", $kode_booking);
+$stmt_check->execute();
+$result_check = $stmt_check->get_result();
 
-$result = $conn->query($sql);
-
-if (!$result || $result->num_rows === 0) {
+if ($result_check->num_rows === 0) {
     redirect('index.php');
 }
 
-$booking = $result->fetch_assoc();
+$booking_info = $result_check->fetch_assoc();
+$tipe_booking = $booking_info['tipe_booking'];
+$status = $booking_info['status'];
+
+// Redirect if already paid
+if ($status === 'lunas') {
+    redirect('riwayat.php');
+}
+
+$isRoundTrip = ($tipe_booking === 'departure');
+
+if ($isRoundTrip) {
+    // ========== ROUND-TRIP BOOKING ==========
+    $sql = "SELECT 
+                p1.id as departure_id,
+                p1.kode_booking as departure_booking_code,
+                p1.nama_pemesan,
+                p1.email,
+                p1.no_hp,
+                p1.jumlah_penumpang,
+                p1.total_harga,
+                p1.status,
+                p1.created_at,
+                
+                pn1.maskapai as departure_maskapai,
+                pn1.kode_penerbangan as departure_flight_code,
+                pn1.asal as departure_origin,
+                pn1.tujuan as departure_destination,
+                DATE_FORMAT(pn1.tanggal, '%d %M %Y') as departure_date,
+                pn1.jam_berangkat as departure_time,
+                pn1.jam_tiba as departure_arrival,
+                pn1.harga as departure_price,
+                
+                p2.id as return_id,
+                p2.kode_booking as return_booking_code,
+                pn2.maskapai as return_maskapai,
+                pn2.kode_penerbangan as return_flight_code,
+                pn2.asal as return_origin,
+                pn2.tujuan as return_destination,
+                DATE_FORMAT(pn2.tanggal, '%d %M %Y') as return_date,
+                pn2.jam_berangkat as return_time,
+                pn2.jam_tiba as return_arrival,
+                pn2.harga as return_price
+                
+            FROM pemesanan p1
+            LEFT JOIN penerbangan pn1 ON p1.id_penerbangan = pn1.id
+            LEFT JOIN pemesanan p2 ON p1.kode_booking = p2.linked_booking_code
+            LEFT JOIN penerbangan pn2 ON p2.id_penerbangan = pn2.id
+            WHERE p1.kode_booking = ? AND p1.tipe_booking = 'departure'";
+    
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("s", $kode_booking);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($result->num_rows === 0) {
+        redirect('index.php');
+    }
+    
+    $booking = $result->fetch_assoc();
+    
+} else {
+    // ========== ONE-WAY BOOKING ==========
+    $sql = "SELECT p.*, pe.maskapai, pe.kode_penerbangan, pe.asal, pe.tujuan,
+            DATE_FORMAT(pe.tanggal, '%d %M %Y') as tanggal,
+            pe.jam_berangkat, pe.jam_tiba
+            FROM pemesanan p
+            JOIN penerbangan pe ON p.id_penerbangan = pe.id
+            WHERE p.kode_booking = ?";
+    
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("s", $kode_booking);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($result->num_rows === 0) {
+        redirect('index.php');
+    }
+    
+    $booking = $result->fetch_assoc();
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -77,6 +155,16 @@ $booking = $result->fetch_assoc();
                 </div>
             </div>
 
+            <!-- Round-Trip Badge -->
+            <?php if ($isRoundTrip): ?>
+            <div class="mb-6 text-center">
+                <span class="inline-flex items-center px-6 py-3 rounded-full text-white font-bold" style="background: linear-gradient(135deg, #3b82f6 0%, #1e3a8a 100%);">
+                    <i class="fas fa-exchange-alt mr-2"></i>
+                    Round-Trip Booking
+                </span>
+            </div>
+            <?php endif; ?>
+
             <!-- Payment Info -->
             <div class="bg-white rounded-xl shadow-lg p-8 mb-6">
                 <div class="text-center mb-8">
@@ -84,36 +172,125 @@ $booking = $result->fetch_assoc();
                         <i class="fas fa-check-circle text-4xl text-green-500"></i>
                     </div>
                     <h2 class="text-3xl font-bold text-gray-800 mb-2">Pemesanan Berhasil!</h2>
-                    <p class="text-gray-600">Kode Booking: <span class="font-bold text-primary text-2xl"><?= $booking['kode_booking'] ?></span></p>
+                    <p class="text-gray-600">Kode Booking: 
+                        <span class="font-bold text-primary text-2xl">
+                            <?= $isRoundTrip ? $booking['departure_booking_code'] : $booking['kode_booking'] ?>
+                        </span>
+                    </p>
                 </div>
 
-                <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 mb-6">
-                    <h3 class="font-bold text-gray-800 mb-4 text-xl">Detail Penerbangan</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <p class="text-sm text-gray-600">Maskapai</p>
-                            <p class="font-bold"><?= $booking['maskapai'] ?> (<?= $booking['kode_penerbangan'] ?>)</p>
+                <?php if ($isRoundTrip): ?>
+                    <!-- ========== ROUND-TRIP FLIGHT DETAILS ========== -->
+                    
+                    <!-- Departure Flight -->
+                    <div class="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg p-6 mb-4 border-l-4 border-blue-500">
+                        <div class="flex items-center mb-4">
+                            <i class="fas fa-plane-departure text-2xl text-blue-600 mr-3"></i>
+                            <h3 class="font-bold text-gray-800 text-xl">Penerbangan Berangkat</h3>
                         </div>
-                        <div>
-                            <p class="text-sm text-gray-600">Tanggal Keberangkatan</p>
-                            <p class="font-bold"><?= $booking['tanggal'] ?></p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-sm text-gray-600">Maskapai</p>
+                                <p class="font-bold"><?= $booking['departure_maskapai'] ?> (<?= $booking['departure_flight_code'] ?>)</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">Tanggal Keberangkatan</p>
+                                <p class="font-bold"><?= $booking['departure_date'] ?></p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">Rute</p>
+                                <p class="font-bold"><?= $booking['departure_origin'] ?> → <?= $booking['departure_destination'] ?></p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">Waktu</p>
+                                <p class="font-bold"><?= date('H:i', strtotime($booking['departure_time'])) ?> - <?= date('H:i', strtotime($booking['departure_arrival'])) ?></p>
+                            </div>
                         </div>
-                        <div>
-                            <p class="text-sm text-gray-600">Rute</p>
-                            <p class="font-bold"><?= $booking['asal'] ?> → <?= $booking['tujuan'] ?></p>
-                        </div>
-                        <div>
-                            <p class="text-sm text-gray-600">Jumlah Penumpang</p>
-                            <p class="font-bold"><?= $booking['jumlah_penumpang'] ?> Orang</p>
+                        <div class="mt-4 pt-4 border-t border-blue-200">
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Harga per orang</span>
+                                <span class="font-bold text-blue-600"><?= formatRupiah($booking['departure_price']) ?></span>
+                            </div>
                         </div>
                     </div>
-                </div>
 
+                    <!-- Return Flight -->
+                    <div class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-6 mb-6 border-l-4 border-purple-500">
+                        <div class="flex items-center mb-4">
+                            <i class="fas fa-plane-arrival text-2xl text-purple-600 mr-3"></i>
+                            <h3 class="font-bold text-gray-800 text-xl">Penerbangan Kembali</h3>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-sm text-gray-600">Maskapai</p>
+                                <p class="font-bold"><?= $booking['return_maskapai'] ?> (<?= $booking['return_flight_code'] ?>)</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">Tanggal Kepulangan</p>
+                                <p class="font-bold"><?= $booking['return_date'] ?></p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">Rute</p>
+                                <p class="font-bold"><?= $booking['return_origin'] ?> → <?= $booking['return_destination'] ?></p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">Waktu</p>
+                                <p class="font-bold"><?= date('H:i', strtotime($booking['return_time'])) ?> - <?= date('H:i', strtotime($booking['return_arrival'])) ?></p>
+                            </div>
+                        </div>
+                        <div class="mt-4 pt-4 border-t border-purple-200">
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">Harga per orang</span>
+                                <span class="font-bold text-purple-600"><?= formatRupiah($booking['return_price']) ?></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Passengers Info -->
+                    <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">Jumlah Penumpang</span>
+                            <span class="font-bold"><?= $booking['jumlah_penumpang'] ?> Orang</span>
+                        </div>
+                    </div>
+
+                <?php else: ?>
+                    <!-- ========== ONE-WAY FLIGHT DETAILS ========== -->
+                    <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 mb-6">
+                        <h3 class="font-bold text-gray-800 mb-4 text-xl">Detail Penerbangan</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-sm text-gray-600">Maskapai</p>
+                                <p class="font-bold"><?= $booking['maskapai'] ?> (<?= $booking['kode_penerbangan'] ?>)</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">Tanggal Keberangkatan</p>
+                                <p class="font-bold"><?= $booking['tanggal'] ?></p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">Rute</p>
+                                <p class="font-bold"><?= $booking['asal'] ?> → <?= $booking['tujuan'] ?></p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">Jumlah Penumpang</p>
+                                <p class="font-bold"><?= $booking['jumlah_penumpang'] ?> Orang</p>
+                            </div>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
+                <!-- Total Payment -->
                 <div class="bg-accent bg-opacity-10 rounded-lg p-6 mb-6">
                     <div class="flex justify-between items-center">
                         <div>
                             <p class="text-gray-600 mb-1">Total yang harus dibayar:</p>
                             <p class="text-4xl font-bold text-accent"><?= formatRupiah($booking['total_harga']) ?></p>
+                            <?php if ($isRoundTrip): ?>
+                            <p class="text-sm text-gray-500 mt-2">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                Termasuk kedua penerbangan (pergi & pulang)
+                            </p>
+                            <?php endif; ?>
                         </div>
                         <div class="text-right">
                             <i class="fas fa-credit-card text-6xl text-accent opacity-20"></i>
@@ -121,8 +298,13 @@ $booking = $result->fetch_assoc();
                     </div>
                 </div>
 
+                <!-- Payment Buttons -->
                 <div class="space-y-4">
-                    <button id="payButton" class="w-full bg-accent hover:bg-orange-600 text-white font-bold py-4 rounded-lg transition duration-300 flex items-center justify-center text-lg">
+                    <button id="payButton" 
+                            data-booking-id="<?= $isRoundTrip ? $booking['departure_id'] : $booking['id'] ?>"
+                            data-booking-code="<?= $isRoundTrip ? $booking['departure_booking_code'] : $booking['kode_booking'] ?>"
+                            data-is-roundtrip="<?= $isRoundTrip ? '1' : '0' ?>"
+                            class="w-full bg-accent hover:bg-orange-600 text-white font-bold py-4 rounded-lg transition duration-300 flex items-center justify-center text-lg">
                         <i class="fas fa-credit-card mr-3"></i>
                         Bayar Sekarang
                     </button>
@@ -170,17 +352,22 @@ $booking = $result->fetch_assoc();
         const payButton = document.getElementById('payButton');
         
         payButton.addEventListener('click', async function() {
+            const bookingId = this.dataset.bookingId;
+            const bookingCode = this.dataset.bookingCode;
+            const isRoundTrip = this.dataset.isRoundtrip === '1';
+            
             this.disabled = true;
             this.innerHTML = '<i class="fas fa-spinner fa-spin mr-3"></i>Memproses...';
             
             try {
                 const formData = new FormData();
-                formData.append('id_pemesanan', '<?= $booking['id'] ?>');
-                formData.append('kode_booking', '<?= $booking['kode_booking'] ?>');
+                formData.append('id_pemesanan', bookingId);
+                formData.append('kode_booking', bookingCode);
                 formData.append('nama', '<?= $booking['nama_pemesan'] ?>');
                 formData.append('email', '<?= $booking['email'] ?>');
                 formData.append('phone', '<?= $booking['no_hp'] ?>');
                 formData.append('amount', '<?= $booking['total_harga'] ?>');
+                formData.append('is_roundtrip', isRoundTrip ? '1' : '0');
                 
                 const response = await fetch('api/get_payment_token.php', {
                     method: 'POST',

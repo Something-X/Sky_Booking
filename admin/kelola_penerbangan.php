@@ -170,7 +170,7 @@ $pending_count = $pending_result ? $pending_result->fetch_assoc()['total'] : 0;
                     <i class="fas fa-calendar-alt mr-2"></i>Jadwal Penerbangan
                 </button>
                 <button onclick="switchTab('arrived')" id="tab-arrived" class="tab-button flex-1 px-6 py-3 rounded-lg font-semibold transition-all relative">
-                    <i class="fas fa-plane mr-2"></i>Pesawat Tersedia
+                    <i class="fas fa-plane-circle-check mr-2"></i>Pesawat Tersedia
                     <span id="arrivedBadge" class="badge-arrived absolute -top-1 -right-1 bg-green-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center hidden">0</span>
                 </button>
             </div>
@@ -298,15 +298,20 @@ $pending_count = $pending_result ? $pending_result->fetch_assoc()['total'] : 0;
             <!-- Tab Content: Pesawat Tersedia -->
             <div id="content-arrived" class="tab-content hidden">
                 <div class="bg-white rounded-xl shadow-md p-6 mb-6">
-                    <h2 class="text-xl font-bold text-gray-800">Pesawat Tersedia</h2>
-                    <p class="text-gray-500 text-sm">Pesawat operasional yang belum memiliki jadwal penerbangan aktif</p>
+                    <h2 class="text-xl font-bold text-gray-800">
+                        <i class="fas fa-plane-circle-check text-blue-600 mr-2"></i>Pesawat Tersedia
+                    </h2>
+                    <p class="text-gray-500 text-sm mt-2">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Menampilkan pesawat operasional yang tidak memiliki jadwal aktif (Scheduled/Departed) untuk hari ini atau ke depan
+                    </p>
                 </div>
 
                 <!-- Table Pesawat Tersedia -->
                 <div class="bg-white rounded-xl shadow-lg overflow-hidden">
                     <div class="overflow-x-auto">
                         <table class="w-full">
-                            <thead class="bg-gradient-to-r from-green-500 to-green-600 text-white">
+                            <thead class="bg-blue-600 text-white">
                                 <tr>
                                     <th class="px-6 py-4 text-left">No. Registrasi</th>
                                     <th class="px-6 py-4 text-left">Pesawat</th>

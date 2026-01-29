@@ -19,6 +19,7 @@ window.addEventListener("DOMContentLoaded", function () {
 // TAB SWITCHING
 // ========================================
 function switchTab(tab) {
+  console.log("=== Switching to tab:", tab, "===");
   currentTab = tab;
 
   // Hide all content
@@ -34,9 +35,16 @@ function switchTab(tab) {
   document.getElementById("tab-" + tab).classList.add("active");
 
   // Load data
-  if (tab === "pesawat") loadPesawat();
-  else if (tab === "jadwal") loadJadwal();
-  else if (tab === "arrived") loadArrived();
+  if (tab === "pesawat") {
+    console.log("Loading pesawat...");
+    loadPesawat();
+  } else if (tab === "jadwal") {
+    console.log("Loading jadwal...");
+    loadJadwal();
+  } else if (tab === "arrived") {
+    console.log("Loading arrived aircraft...");
+    loadArrived();
+  }
 }
 
 // ========================================
@@ -294,6 +302,7 @@ document
         showSuccess("Data pesawat berhasil disimpan");
         closeModal("pesawatModal");
         loadPesawat();
+        updateArrivedCount(); // Update badge
       } else {
         showError(data.message || "Gagal menyimpan data");
       }
@@ -567,6 +576,7 @@ async function deleteJadwal(id, kode) {
     if (data.success) {
       showSuccess("Jadwal berhasil dihapus");
       loadJadwal();
+      updateArrivedCount(); // Update badge
     } else {
       showError(data.message || "Gagal menghapus jadwal");
     }
@@ -604,7 +614,7 @@ document
         showSuccess("Jadwal penerbangan berhasil disimpan");
         closeModal("jadwalModal");
         loadJadwal();
-        updateArrivedCount();
+        updateArrivedCount(); // Update badge
       } else {
         showError(data.message || "Gagal menyimpan jadwal");
       }
@@ -620,19 +630,52 @@ document
 // PESAWAT TERSEDIA FUNCTIONS
 // ========================================
 async function loadArrived() {
+  console.log("=== loadArrived() called ===");
+  const tbody = document.getElementById("arrivedTableBody");
+  
+  // Show loading
+  tbody.innerHTML = `
+    <tr>
+      <td colspan="6" class="px-6 py-8 text-center text-gray-500">
+        <i class="fas fa-spinner fa-spin text-2xl"></i>
+        <p class="mt-2">Memuat data...</p>
+      </td>
+    </tr>
+  `;
+  
+  console.log("Fetching from: api/get_available_aircraft.php");
+  
   try {
     const response = await fetch("api/get_available_aircraft.php");
+    console.log("Response status:", response.status);
     const data = await response.json();
+    console.log("Data received:", data);
 
     if (data.success) {
       displayArrived(data.data);
       updateArrivedCount(data.data.length);
     } else {
       showError(data.message || "Gagal memuat data pesawat tersedia");
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="6" class="px-6 py-8 text-center text-red-500">
+            <i class="fas fa-exclamation-triangle text-4xl mb-2"></i>
+            <p>${data.message || "Gagal memuat data"}</p>
+          </td>
+        </tr>
+      `;
     }
   } catch (error) {
     console.error("Error:", error);
     showError("Gagal memuat data pesawat tersedia");
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" class="px-6 py-8 text-center text-red-500">
+          <i class="fas fa-exclamation-triangle text-4xl mb-2"></i>
+          <p>Terjadi kesalahan saat memuat data</p>
+        </td>
+      </tr>
+    `;
   }
 }
 
@@ -643,9 +686,9 @@ function displayArrived(aircraft) {
     tbody.innerHTML = `
       <tr>
         <td colspan="6" class="px-6 py-8 text-center text-gray-500">
-          <i class="fas fa-plane-slash text-4xl mb-2"></i>
-          <p>Semua pesawat operasional sudah memiliki jadwal</p>
-          <p class="text-xs mt-2">Pesawat tanpa jadwal akan muncul di sini</p>
+          <i class="fas fa-calendar-check text-4xl mb-2 text-blue-500"></i>
+          <p class="text-lg font-semibold">Semua pesawat operasional sudah memiliki jadwal aktif!</p>
+          <p class="text-sm mt-2">Pesawat tanpa jadwal penerbangan aktif (Scheduled/Departed) akan muncul di sini</p>
         </td>
       </tr>
     `;
@@ -677,7 +720,7 @@ function displayArrived(aircraft) {
           </div>
         </td>
         <td class="px-6 py-4 text-center">
-          <div class="text-sm">Kapasitas: ${a.kapasitas}</div>
+          <div class="text-sm">Kapasitas: <span class="font-bold text-primary">${a.kapasitas}</span></div>
           <div class="text-xs mt-1">
             <span class="${kelasClass} px-2 py-1 rounded-full font-semibold">
               ${a.kelas_layanan || "Economy Class"}
@@ -686,7 +729,7 @@ function displayArrived(aircraft) {
         </td>
         <td class="px-6 py-4 text-center">
           <span class="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-xs font-semibold">
-            <i class="fas fa-clock mr-1"></i>MENUNGGU JADWAL
+            <i class="fas fa-clock mr-1"></i>BELUM ADA JADWAL
           </span>
         </td>
         <td class="px-6 py-4 text-center">

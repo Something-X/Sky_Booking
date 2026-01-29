@@ -1,10 +1,21 @@
 <?php
+// Enable error reporting untuk debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 0); // Jangan tampilkan error di output
+ini_set('log_errors', 1); // Log error ke file
+
 require_once '../../config.php';
 
 header('Content-Type: application/json');
 
 try {
-    // Query untuk mendapatkan pesawat yang tidak memiliki jadwal aktif
+    // Cek koneksi database
+    if (!isset($conn) || !$conn) {
+        throw new Exception("Database connection failed");
+    }
+
+    // Query untuk menampilkan pesawat operasional yang tidak memiliki jadwal aktif
+    // Pesawat dianggap "tersedia" jika tidak ada jadwal dengan status Scheduled atau Departed
     $query = "
         SELECT 
             p.id,
@@ -18,14 +29,15 @@ try {
             a.id as airport_id
         FROM pesawat p
         LEFT JOIN airports a ON p.airport_id = a.id
-        WHERE p.status_pesawat = 'operasional'
+        WHERE LOWER(p.status_pesawat) = 'operasional'
         AND p.id NOT IN (
             SELECT DISTINCT pesawat_id 
-            FROM jadwal_penerbangan 
-            WHERE status_tracking IN ('Scheduled', 'Departed')
-            AND pesawat_id IS NOT NULL
+            FROM penerbangan 
+            WHERE pesawat_id IS NOT NULL
+            AND status_tracking IN ('Scheduled', 'Departed')
+            AND tanggal >= CURDATE()
         )
-        ORDER BY p.maskapai, p.nomor_registrasi
+        ORDER BY p.created_at DESC, p.maskapai, p.nomor_registrasi
     ";
     
     $result = $conn->query($query);
@@ -46,9 +58,12 @@ try {
     ]);
     
 } catch (Exception $e) {
+    // Return JSON error instead of HTML
+    http_response_code(500);
     echo json_encode([
         'success' => false,
-        'message' => $e->getMessage()
+        'message' => $e->getMessage(),
+        'error' => $e->getMessage()
     ]);
 }
 ?>

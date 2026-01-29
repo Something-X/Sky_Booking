@@ -308,12 +308,6 @@ $support_count = $support_result ? $support_result->fetch_assoc()['total'] : 0;
 
         <div class="mb-6">
             <p class="text-gray-500 text-xs uppercase mb-3 px-4 sidebar-label font-semibold tracking-wider">ANALYTICS</p>
-            <a href="analytics.php"
-                class="sidebar-item <?= $current_page === 'analytics.php' ? 'active' : '' ?> flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 mb-2"
-                data-tooltip="Analytics">
-                <i class="fas fa-chart-line flex-shrink-0"></i>
-                <span class="sidebar-text">Analytics</span>
-            </a>
             <a href="reports.php"
                 class="sidebar-item <?= $current_page === 'reports.php' ? 'active' : '' ?> flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 mb-2"
                 data-tooltip="Reports">
@@ -324,12 +318,6 @@ $support_count = $support_result ? $support_result->fetch_assoc()['total'] : 0;
 
         <div>
             <p class="text-gray-500 text-xs uppercase mb-3 px-4 sidebar-label font-semibold tracking-wider">SETTINGS</p>
-            <a href="settings.php"
-                class="sidebar-item <?= $current_page === 'settings.php' ? 'active' : '' ?> flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 mb-2"
-                data-tooltip="Settings">
-                <i class="fas fa-cog flex-shrink-0"></i>
-                <span class="sidebar-text">Settings</span>
-            </a>
             <a href="logout.php"
                 class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300"
                 data-tooltip="Logout">
